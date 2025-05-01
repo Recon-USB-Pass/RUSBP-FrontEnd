@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Compile Update="Forms\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\MainForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Forms\Shared\EmployeeCardControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Shared\LogListControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Shared\NavigationBar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Shared\UsbCardControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Vistas\EmployeeDetailView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Vistas\LogoutView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Forms\Vistas\MonitoringView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Vistas\SettingsView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="Forms\Vistas\UsbAssignmentView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

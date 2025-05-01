@@ -1,0 +1,7 @@
+C:\PublishTest\RUSBP-Admin.pdb
+C:\PublishTest\D3DCompiler_47_cor3.dll
+C:\PublishTest\PenImc_cor3.dll
+C:\PublishTest\PresentationNative_cor3.dll
+C:\PublishTest\vcruntime140_cor3.dll
+C:\PublishTest\wpfgfx_cor3.dll
+C:\PublishTest\RUSBP-Admin.exe
