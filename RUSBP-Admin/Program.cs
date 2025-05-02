@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Threading;
 using System.Windows.Forms;
+
+
+
 using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms;
 
@@ -13,7 +16,7 @@ namespace RUSBP_Admin
         {
             ApplicationConfiguration.Initialize();
 
-            var api = ApiClientFactory.Create("http://192.168.1.100:8080");
+            var api = ApiClientFactory.Create("http://192.168.1.209:8080");
 
             var auth = new AuthService(api);
             var mon = new MonitoringService(api);

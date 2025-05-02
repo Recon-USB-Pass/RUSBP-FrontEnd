@@ -45,17 +45,25 @@ namespace RUSBP_Admin.Forms
             _usbWatcher.StateChanged += ok => Invoke(() => UpdateUi(ok));
 
             UpdateUi(false);
-            btnLogin.Click += btnLogin_Click;
+            //btnLogin.Click += btnLogin_Click;
         }
 
         /* ---------- UI ---------- */
         private void UpdateUi(bool usbOk)
         {
             string imgPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                                          IMG_DIR, usbOk ? IMG_ON : IMG_OFF);
+                                          IMG_DIR,
+                                          usbOk ? IMG_ON : IMG_OFF);
 
             if (File.Exists(imgPath))
-                picUsb.Image = Image.FromFile(imgPath);
+            {
+                /* ─── Libera la anterior ─── */
+                picUsb_off.Image?.Dispose();
+
+                /* Carga en memoria para que el fichero NO quede bloqueado */
+                using var tmp = Image.FromFile(imgPath);      // abre
+                picUsb_off.Image = new Bitmap(tmp);               // copia/cierra
+            }
 
             txtPin.Enabled = usbOk;
             btnLogin.Enabled = usbOk;

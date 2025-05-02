@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace RUSBP_Admin.Core.Models.Dtos
 {
+    /// <summary>
+    ///  Payload que el agente envía a  POST /api/Auth/login
+    /// </summary>
     public record LoginRequestDto(int UsuarioId, string Pin, string MacAddress);
 
     public record UsbAsignarRequestDto(string Serial, string CertThumbprint, int UsuarioId);

@@ -28,22 +28,24 @@
         /// </summary>
         private void InitializeComponent()
         {
-            picUsb = new PictureBox();
+            picUsb_off = new PictureBox();
             txtPin = new TextBox();
             btnLogin = new Button();
-            ((System.ComponentModel.ISupportInitialize)picUsb).BeginInit();
+            picUsb_on = new PictureBox();
+            ((System.ComponentModel.ISupportInitialize)picUsb_off).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)picUsb_on).BeginInit();
             SuspendLayout();
             // 
-            // picUsb
+            // picUsb_off
             // 
-            picUsb.BackColor = SystemColors.Window;
-            picUsb.Image = Properties.Resources.usb_icon_off;
-            picUsb.Location = new Point(358, 188);
-            picUsb.Name = "picUsb";
-            picUsb.Size = new Size(200, 200);
-            picUsb.SizeMode = PictureBoxSizeMode.Zoom;
-            picUsb.TabIndex = 0;
-            picUsb.TabStop = false;
+            picUsb_off.BackColor = SystemColors.Window;
+            picUsb_off.Image = Properties.Resources.usb_off;
+            picUsb_off.Location = new Point(359, 162);
+            picUsb_off.Name = "picUsb_off";
+            picUsb_off.Size = new Size(200, 200);
+            picUsb_off.SizeMode = PictureBoxSizeMode.Zoom;
+            picUsb_off.TabIndex = 0;
+            picUsb_off.TabStop = false;
             // 
             // txtPin
             // 
@@ -67,6 +69,16 @@
             btnLogin.UseVisualStyleBackColor = false;
             btnLogin.Click += btnLogin_Click;
             // 
+            // picUsb_on
+            // 
+            picUsb_on.Image = Properties.Resources.usb_on;
+            picUsb_on.Location = new Point(589, 162);
+            picUsb_on.Name = "picUsb_on";
+            picUsb_on.Size = new Size(200, 201);
+            picUsb_on.SizeMode = PictureBoxSizeMode.Zoom;
+            picUsb_on.TabIndex = 2;
+            picUsb_on.TabStop = false;
+            // 
             // LoginForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -74,20 +86,23 @@
             BackgroundImage = Properties.Resources.Block_Screen_WALLPAPER;
             BackgroundImageLayout = ImageLayout.Stretch;
             ClientSize = new Size(1920, 918);
+            Controls.Add(picUsb_on);
             Controls.Add(btnLogin);
             Controls.Add(txtPin);
-            Controls.Add(picUsb);
+            Controls.Add(picUsb_off);
             Name = "LoginForm";
             StartPosition = FormStartPosition.CenterScreen;
-            ((System.ComponentModel.ISupportInitialize)picUsb).EndInit();
+            ((System.ComponentModel.ISupportInitialize)picUsb_off).EndInit();
+            ((System.ComponentModel.ISupportInitialize)picUsb_on).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
 
         #endregion
 
-        private PictureBox picUsb;
+        private PictureBox picUsb_off;
         private TextBox txtPin;
         private Button btnLogin;
+        private PictureBox picUsb_on;
     }
 }
