@@ -1,17 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using RUSBP_Admin.Core.Models;
+using RUSBP_Admin.Core.Models.Dtos;     // ← LogActividadDto
 using RUSBP_Admin.Forms.Shared;
 
 namespace RUSBP_Admin.Forms.Vistas
@@ -20,16 +12,15 @@ namespace RUSBP_Admin.Forms.Vistas
     {
         public EmployeeDetailView() => InitializeComponent();
 
-        /* --------------------------------------------------------------
-         *  API – carga de datos reales desde tu servicio/DB
-         * --------------------------------------------------------------*/
-        public void LoadEmployee(Employee emp, IEnumerable<UsbLogEntry> logs)
+        /* -----------------------------------------------------------------
+         *  Carga datos del empleado + logs de actividad
+         * -----------------------------------------------------------------*/
+        public void LoadEmployee(Employee emp, IEnumerable<LogActividadDto> logs)
         {
-            // limpia tarjetas anteriores
+            /* ---- tarjetas de información ---- */
             flpCards.Controls.Clear();
 
-            // crea las tarjetas con datos
-            flpCards.Controls.Add(Card("Nombre", emp.FullName, Properties.Resources.icon_user));
+            flpCards.Controls.Add(Card("Nombre", emp.Nombre, Properties.Resources.icon_user));
             flpCards.Controls.Add(Card("RUT", emp.Rut, Properties.Resources.icon_id));
             flpCards.Controls.Add(Card("IP Asignada", emp.Ip, Properties.Resources.icon_ip));
             flpCards.Controls.Add(Card("Dirección MAC USB", emp.Mac, Properties.Resources.icon_mac));
@@ -37,30 +28,35 @@ namespace RUSBP_Admin.Forms.Vistas
             flpCards.Controls.Add(Card("Área de Trabajo", emp.Area, Properties.Resources.icon_dept));
             flpCards.Controls.Add(Card("Cargo", emp.Role, Properties.Resources.icon_role));
 
-            // almacenamiento (barra de progreso)
-            var bar = new ProgressBar { Value = emp.StoragePercent, Dock = DockStyle.Fill, Height = 18 };
-            var cardStorage = Card("Almacenamiento USB", "", Properties.Resources.icon_storage);
-            cardStorage.Controls.Add(bar);                    // añade la barra
-            flpCards.Controls.Add(cardStorage);
+            /* ---- almacenamiento (barra de progreso) ---- */
+            var bar = new ProgressBar
+            {
+                Dock = DockStyle.Fill,
+                Height = 18,
+                Value = emp.StoragePercent
+            };
+            var storageCard = Card("Almacenamiento USB", "", Properties.Resources.icon_storage);
+            storageCard.Controls.Add(bar);
+            flpCards.Controls.Add(storageCard);
 
-            // estado PKI
-            var cardPki = Card("Estado de Claves PKI", emp.PkiStatus, Properties.Resources.icon_key);
-            cardPki.Controls[1].ForeColor = Color.Lime;       // lblValue
-            flpCards.Controls.Add(cardPki);
+            /* ---- estado PKI ---- */
+            var pkiCard = Card("Estado de Claves PKI", emp.PkiStatus, Properties.Resources.icon_key);
+            pkiCard.Controls[1].ForeColor = Color.Lime;   // Value label está en Controls[1]
+            flpCards.Controls.Add(pkiCard);
 
-            // carga logs
-            logList.Clear();                                  // método de extensión sencillo
+            /* ---- logs ---- */
+            logList.Clear();
             foreach (var l in logs)
                 logList.Append(l.Message);
         }
 
-        /* helper: crea EmployeeCardControl pre-configurado */
+        /* helper: crea una tarjeta lista para agregar al FlowLayout */
         private static EmployeeCardControl Card(string title, string value, Image? icon = null)
         {
             var c = new EmployeeCardControl { Title = title, Value = value };
-            if (icon != null) c.Controls[0].BackgroundImage = icon;   // picIcon está en Controls[0]
+            if (icon is not null)
+                c.Controls[0].BackgroundImage = icon;     // picIcon está en Controls[0]
             return c;
         }
     }
 }
-

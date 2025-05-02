@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Windows.Forms;
+using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms.Shared;
 using RUSBP_Admin.Forms.Vistas;    // carpeta Views
 
@@ -13,10 +15,16 @@ namespace RUSBP_Admin.Forms
         // vistas:
         private readonly MonitoringView _monitoringView = new();
         private readonly UsbAssignmentView _assignmentView = new();
+        private readonly MonitoringService _mon;
+        private readonly AuthService _auth;
+        private readonly ApiClient _api;
 
-        public MainForm()
+        public MainForm(MonitoringService mon, AuthService auth, ApiClient api)
         {
-            InitializeComponent();       // ← definido en Designer
+            _mon = mon;
+            _auth = auth;
+            _api = api;
+            InitializeComponent();
 
             _nav = new NavigationBar { Dock = DockStyle.Left };
             _content = new Panel { Dock = DockStyle.Fill, BackColor = BackColor };

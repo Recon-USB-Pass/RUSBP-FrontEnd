@@ -3,6 +3,137 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net.NetworkInformation;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using RUSBP_Admin.Core.Helpers;      // KeyboardHook, CursorGuard
+using RUSBP_Admin.Core.Services;     // UsbWatcher, AuthService
+
+namespace RUSBP_Admin.Forms
+{
+    public partial class LoginForm : Form
+    {
+        /* ---------- CONFIG ---------- */
+        private const bool LOCK_MODE = false;       // true = pantalla completa
+        private const int USUARIO_ID = 1;         // ← FIXED para demo
+        private const string IMG_DIR = "Images";
+        private const string IMG_ON = "usb_icon_on.png";
+        private const string IMG_OFF = "usb_icon_off.png";
+
+        /* ---------- SERVICIOS ---------- */
+        private readonly UsbWatcher _usbWatcher;
+        private readonly AuthService _auth;
+
+        public LoginForm(AuthService auth)
+        {
+            _auth = auth;
+            InitializeComponent();
+
+            /*---- ventana ----*/
+            FormBorderStyle = LOCK_MODE ? FormBorderStyle.None : FormBorderStyle.Sizable;
+            ControlBox = MaximizeBox = MinimizeBox = !LOCK_MODE;
+            WindowState = FormWindowState.Maximized;
+            StartPosition = FormStartPosition.CenterScreen;
+            TopMost = true;
+
+            /*---- hooks ----*/
+            KeyboardHook.Install();
+            Shown += (_, __) => CursorGuard.RestrictToControl(this, new Padding(80));
+
+            /*---- USB watcher ----*/
+            _usbWatcher = new UsbWatcher();
+            _usbWatcher.StateChanged += ok => Invoke(() => UpdateUi(ok));
+
+            UpdateUi(false);
+            btnLogin.Click += btnLogin_Click;
+        }
+
+        /* ---------- UI ---------- */
+        private void UpdateUi(bool usbOk)
+        {
+            string imgPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                                          IMG_DIR, usbOk ? IMG_ON : IMG_OFF);
+
+            if (File.Exists(imgPath))
+                picUsb.Image = Image.FromFile(imgPath);
+
+            txtPin.Enabled = usbOk;
+            btnLogin.Enabled = usbOk;
+            if (!usbOk) txtPin.Clear();
+        }
+
+        /* ---------- LOGIN ---------- */
+        private async void btnLogin_Click(object? sender, EventArgs e)
+        {
+            string pin = txtPin.Text.Trim();
+            string mac = GetFirstMac();
+
+            btnLogin.Enabled = false;
+            try
+            {
+                bool ok = await _auth.LoginAsync(USUARIO_ID, pin, mac);
+                if (ok)
+                {
+                    CursorGuard.Release();
+                    DialogResult = DialogResult.OK;   // permite abrir MainForm
+                    Close();
+                    return;
+                }
+                MessageBox.Show("PIN incorrecto");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error de conexión al servidor:\n{ex.Message}");
+            }
+            finally
+            {
+                btnLogin.Enabled = true;
+                txtPin.SelectAll();
+                txtPin.Focus();
+            }
+        }
+
+        private static string GetFirstMac() =>
+            NetworkInterface.GetAllNetworkInterfaces()
+                            .Where(n => n.OperationalStatus == OperationalStatus.Up)
+                            .Select(n => n.GetPhysicalAddress().ToString())
+                            .FirstOrDefault() ?? "";
+
+        /* ---------- LIMPIEZA ---------- */
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            _usbWatcher.Dispose();
+            KeyboardHook.Uninstall();
+            CursorGuard.Release();
+            base.OnFormClosed(e);
+        }
+
+        /* ---------- BLOQUEO DE TECLAS ---------- */
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+#if DEBUG
+            return base.ProcessCmdKey(ref msg, keyData);
+#else
+            if (new[] { Keys.Alt | Keys.F4, Keys.Alt, Keys.Tab, Keys.LWin, Keys.RWin }
+                .Contains(keyData)) return true;
+            return base.ProcessCmdKey(ref msg, keyData);
+#endif
+        }
+    }
+}
+
+
+
+
+
+/*
+
+
+using System;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using RUSBP_Admin.Core.Helpers;    // KeyboardHook, CursorGuard
 using RUSBP_Admin.Core.Services;   // UsbWatcher, PinValidator
@@ -11,7 +142,7 @@ namespace RUSBP_Admin.Forms
 {
     public partial class LoginForm : Form
     {
-        /* CONFIG ----------------------------------------------------------- */
+        /* CONFIG ----------------------------------------------------------- *//*
         private const bool LOCK_MODE = false;   // true = pantalla de bloqueo
         private const string VALID_PIN = "1234";
         private const int MAX_TRIES = 3;
@@ -19,7 +150,7 @@ namespace RUSBP_Admin.Forms
         private const string IMG_ON = "usb_icon_on.png";
         private const string IMG_OFF = "usb_icon_off.png";
 
-        /* SERVICIOS --------------------------------------------------------- */
+        /* SERVICIOS --------------------------------------------------------- *//*
         private readonly UsbWatcher _usb;
         private readonly PinValidator _pin;
 
@@ -27,24 +158,24 @@ namespace RUSBP_Admin.Forms
         {
             InitializeComponent();
 
-            /*--- aspecto ventana ---*/
+            /*--- aspecto ventana ---*//*
             FormBorderStyle = LOCK_MODE ? FormBorderStyle.None : FormBorderStyle.Sizable;
             ControlBox = MaximizeBox = MinimizeBox = !LOCK_MODE;
             WindowState = FormWindowState.Maximized;
             StartPosition = FormStartPosition.CenterScreen;
             TopMost = true;
 
-            /*--- hooks globales ---*/
+            /*--- hooks globales ---*//*
             KeyboardHook.Install();
 
-            /*--- restringe cursor sólo CUANDO el form ya está visible ---*/
+            /*--- restringe cursor sólo CUANDO el form ya está visible ---*//*
             Shown += (_, __) =>
             {
                 // margen de 80 px dentro del interior del LoginForm
                 CursorGuard.RestrictToControl(this, new Padding(80));
             };
 
-            /*--- servicios ---*/
+            /*--- servicios ---*//*
             _usb = new UsbWatcher();
             _usb.StateChanged += ok => Invoke(() => UpdateUi(ok));
 
@@ -59,8 +190,8 @@ namespace RUSBP_Admin.Forms
             btnLogin.Click += btnLogin_Click;
         }
 
-        /* UI ----------------------------------------------------------------*/
-        private void UpdateUi(bool usbOk)
+        /* UI ----------------------------------------------------------------*//*
+private void UpdateUi(bool usbOk)
         {
             var img = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, IMG_DIR,
                                    usbOk ? IMG_ON : IMG_OFF);
@@ -87,8 +218,8 @@ namespace RUSBP_Admin.Forms
             }
         }
 
-        /* LIMPIEZA ----------------------------------------------------------*/
-        protected override void OnFormClosed(FormClosedEventArgs e)
+        /* LIMPIEZA ----------------------------------------------------------*//*
+protected override void OnFormClosed(FormClosedEventArgs e)
         {
             _usb.Dispose();
             KeyboardHook.Uninstall();
@@ -96,8 +227,8 @@ namespace RUSBP_Admin.Forms
             base.OnFormClosed(e);
         }
 
-        /* bloque extra de teclas -------------------------------------------*/
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        /* bloque extra de teclas -------------------------------------------*//*
+protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
 #if DEBUG
             return base.ProcessCmdKey(ref msg, keyData);
@@ -109,3 +240,6 @@ namespace RUSBP_Admin.Forms
         }
     }
 }
+
+
+*/

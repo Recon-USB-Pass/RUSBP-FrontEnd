@@ -21,6 +21,8 @@ namespace RUSBP_Admin.Forms.Shared
         {
             txtLogs.AppendText($"{line}{Environment.NewLine}");
         }
+        public void Clear() => txtLogs.Clear();
+
     }
 }
 
