@@ -1,4 +1,73 @@
 ﻿using System;
+using System.Windows.Forms;
+using RUSBP_Admin.Core.Services;
+using RUSBP_Admin.Forms.Shared;
+using RUSBP_Admin.Forms.Vistas;
+
+namespace RUSBP_Admin.Forms
+{
+    public partial class MainForm : Form
+    {
+        private readonly MonitoringService _mon;
+        private readonly AuthService _auth;
+        private readonly ApiClient _api;
+
+        //  vistas
+        private readonly MonitoringView _monitoringView = new();
+        private readonly UsbAssignmentView _assignmentView = new();
+        private readonly EmployeeDetailView _detailView = new();
+        private readonly LogoutView _logoutView = new();
+
+        public MainForm(MonitoringService mon,
+                        AuthService auth,
+                        ApiClient api)
+        {
+            _mon = mon;
+            _auth = auth;
+            _api = api;
+
+            InitializeComponent();
+
+            // ↓ si quieres pasarles los servicios, hazlo por propiedades
+            _monitoringView.SetServices(_mon, _api);
+            _assignmentView.SetServices(_api);
+
+            // hook para navegar al detalle
+
+
+            _navBar.SectionSelected += NavBar_SectionSelected;
+
+            ShowView(_monitoringView);           // vista inicial
+        }
+
+        private void NavBar_SectionSelected(string tag)
+        {
+            switch (tag)
+            {
+                case "Monitor": ShowView(_monitoringView); break;
+                case "Assign": ShowView(_assignmentView); break;
+                case "Logout": ShowView(_logoutView); break;
+            }
+        }
+
+        private void ShowView(UserControl view)
+        {
+            _panelContent.SuspendLayout();
+            _panelContent.Controls.Clear();
+            _panelContent.Controls.Add(view);
+            view.Dock = DockStyle.Fill;
+            _panelContent.ResumeLayout();
+        }
+    }
+}
+
+
+
+
+
+/*
+
+using System;
 using System.IO;
 using System.Windows.Forms;
 using RUSBP_Admin.Core.Services;
@@ -37,7 +106,7 @@ namespace RUSBP_Admin.Forms
             ShowView(_monitoringView);   // vista inicial
         }
 
-        /* -------- Navegación -------- */
+        /* -------- Navegación -------- *//*
         private void OnSectionSelected(string tag)
         {
             switch (tag)
@@ -56,3 +125,5 @@ namespace RUSBP_Admin.Forms
         }
     }
 }
+
+*/

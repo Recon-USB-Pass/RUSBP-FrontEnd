@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using RUSBP_Admin.Core.Models;
 using RUSBP_Admin.Core.Models.Dtos;
 
 namespace RUSBP_Admin.Core.Services
@@ -37,6 +38,11 @@ namespace RUSBP_Admin.Core.Services
             var res = await _http.GetFromJsonAsync<List<LogActividadDto>>(
                           $"/api/Logs?page={page}&pageSize={pageSize}");
             return res ?? [];
+        }
+        
+        public async Task<List<Employee>> GetEmployeesAsync()
+        {
+            return await _http.GetFromJsonAsync<List<Employee>>("/api/Usuarios");
         }
     }
 }

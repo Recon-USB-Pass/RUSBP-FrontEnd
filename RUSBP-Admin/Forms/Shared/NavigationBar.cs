@@ -24,6 +24,31 @@ namespace RUSBP_Admin.Forms.Shared
             if (s is Button b && b.Tag is string tag)
                 SectionSelected?.Invoke(tag);
         }
+
+        private void Profile_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Log_History_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Monitoring_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Assingment_Usb_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void Logout_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
 

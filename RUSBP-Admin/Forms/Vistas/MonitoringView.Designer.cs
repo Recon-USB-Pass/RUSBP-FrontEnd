@@ -2,6 +2,53 @@
 {
     partial class MonitoringView
     {
+        private System.ComponentModel.IContainer components = null;
+        private FlowLayoutPanel flpCards;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && components != null) components.Dispose();
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            flpCards = new FlowLayoutPanel();
+            SuspendLayout();
+            // 
+            // flpCards
+            // 
+            flpCards.AutoScroll = true;
+            flpCards.Dock = DockStyle.Fill;
+            flpCards.Padding = new Padding(20);
+            flpCards.WrapContents = true;
+            flpCards.Name = "flpCards";
+            flpCards.TabIndex = 0;
+            // 
+            // MonitoringView
+            // 
+            Controls.Add(flpCards);
+            Name = "MonitoringView";
+            BackColor = Color.FromArgb(16, 24, 32);
+            Size = new Size(800, 600);
+            Load += MonitoringView_Load;
+            ResumeLayout(false);
+        }
+    }
+}
+
+
+
+
+
+
+/*
+
+
+namespace RUSBP_Admin.Forms.Vistas
+{
+    partial class MonitoringView
+    {
         /// <summary> 
         /// Variable del diseñador necesaria.
         /// </summary>
@@ -35,10 +82,13 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             Name = "MonitoringView";
-            Size = new Size(699, 390);
+            Size = new Size(740, 335);
             ResumeLayout(false);
         }
 
         #endregion
     }
 }
+
+
+*/

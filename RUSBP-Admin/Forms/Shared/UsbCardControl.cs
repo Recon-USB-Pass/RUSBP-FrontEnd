@@ -1,36 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Net.NetworkInformation;
 using System.Windows.Forms;
-
-using System.Drawing;
-using System.Windows.Forms;
+using RUSBP_Admin.Core.Models;
 
 namespace RUSBP_Admin.Forms.Shared
 {
     public partial class UsbCardControl : UserControl
     {
-        public UsbCardControl(string employeeName, Color back)
+        public event EventHandler? CardClicked;
+
+        public UsbCardControl()
         {
             InitializeComponent();
-            BackColor = back;
-            lblName.Text = employeeName;
+            this.Click += RaiseClick;
+            foreach (Control c in Controls)
+                c.Click += RaiseClick;
         }
 
-        /* API sencilla */
-        public string Ip { set => lblIp.Text = $"IP: {value}"; }
-        public string Mac { set => lblMac.Text = $"MAC: {value}"; }
-        public string PingTxt { set => lblPing.Text = value; }
+        private void RaiseClick(object? sender, EventArgs e) => CardClicked?.Invoke(this, EventArgs.Empty);
 
-        private void lblName_Click(object sender, EventArgs e)
+        public Employee? Employee { get; private set; }
+
+        public void LoadData(Employee emp, string ping)
         {
-
+            Employee = emp;
+            lblName.Text = emp.Nombre;
+            lblIp.Text = $"IP: {emp.Ip}";
+            lblMac.Text = $"MAC: {emp.Mac}";
+            lblPing.Text = ping;
         }
     }
 }
-

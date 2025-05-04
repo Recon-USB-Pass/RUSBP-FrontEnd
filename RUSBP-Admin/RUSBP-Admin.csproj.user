@@ -25,11 +25,11 @@
     <Compile Update="Forms\Vistas\LogoutView.cs">
       <SubType>UserControl</SubType>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Update="Forms\Vistas\MonitoringView.cs">
       <SubType>UserControl</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Update="Forms\Vistas\SettingsView.cs">
       <SubType>UserControl</SubType>
     </Compile>

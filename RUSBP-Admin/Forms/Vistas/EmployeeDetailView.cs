@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Windows.Forms;
 using RUSBP_Admin.Core.Models;
 using RUSBP_Admin.Core.Models.Dtos;     // ← LogActividadDto
+using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms.Shared;
 
 namespace RUSBP_Admin.Forms.Vistas
@@ -58,5 +59,6 @@ namespace RUSBP_Admin.Forms.Vistas
                 c.Controls[0].BackgroundImage = icon;     // picIcon está en Controls[0]
             return c;
         }
+
     }
 }
