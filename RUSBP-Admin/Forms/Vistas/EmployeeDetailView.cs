@@ -13,6 +13,17 @@ namespace RUSBP_Admin.Forms.Vistas
     {
         public EmployeeDetailView() => InitializeComponent();
 
+
+
+        public void LoadSingleEmployee(Employee emp)
+        {
+            lblNombre.Text = emp.Nombre;
+            lblRut.Text = emp.Rut;
+            lblIp.Text = emp.Mac;
+            lblIp.Text = emp.Ip;
+            lblNumeroSerie.Text = emp.Serial;
+        }
+
         /* -----------------------------------------------------------------
          *  Carga datos del empleado + logs de actividad
          * -----------------------------------------------------------------*/
@@ -28,6 +39,12 @@ namespace RUSBP_Admin.Forms.Vistas
             flpCards.Controls.Add(Card("Num. Serie USB", emp.Serial, Properties.Resources.icon_serial));
             flpCards.Controls.Add(Card("Área de Trabajo", emp.Area, Properties.Resources.icon_dept));
             flpCards.Controls.Add(Card("Cargo", emp.Role, Properties.Resources.icon_role));
+
+            lblNombre.Text = emp.Nombre;
+            lblRut.Text = emp.Rut;
+            lblIp.Text = emp.Mac;
+            lblIp.Text = emp.Ip;
+            lblNumeroSerie.Text = emp.Serial;
 
             /* ---- almacenamiento (barra de progreso) ---- */
             var bar = new ProgressBar
@@ -60,5 +77,9 @@ namespace RUSBP_Admin.Forms.Vistas
             return c;
         }
 
+        private void logList_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }

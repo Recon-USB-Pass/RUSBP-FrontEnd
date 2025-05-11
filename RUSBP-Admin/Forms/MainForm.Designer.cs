@@ -1,57 +1,67 @@
 ﻿
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace RUSBP_Admin.Forms
 {
     partial class MainForm
     {
+        /// <summary>Designer container</summary>
         private System.ComponentModel.IContainer components = null;
-        private Shared.NavigationBar _navBar;
-        private System.Windows.Forms.Panel _panelContent;
 
+        private Shared.NavigationBar _navBar = null!;
+        private Panel _panelContent = null!;
+
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && components != null)
-                components.Dispose();
+            if (disposing && (components != null))
+                components?.Dispose();
             base.Dispose(disposing);
         }
 
-        #region Windows-Form Designer code
+        #region  Windows-Form Designer generated code
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
-
-            /* ---------- NavigationBar (dock left) ---------- */
-            _navBar = new Shared.NavigationBar
-            {
-                Name = "navigationBar",
-                Dock = System.Windows.Forms.DockStyle.Left,
-                Width = 90         // ancho fijo
-            };
-
-            /* ---------- Panel contenedor de vistas ---------- */
-            _panelContent = new System.Windows.Forms.Panel
-            {
-                Name = "panelContent",
-                Dock = System.Windows.Forms.DockStyle.Fill,
-                BackColor = System.Drawing.Color.FromArgb(16, 24, 32),
-                Padding = new System.Windows.Forms.Padding(10)
-            };
-
-            /* ---------- MainForm ---------- */
-            AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
-            AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            BackColor = System.Drawing.Color.FromArgb(16, 24, 32);
-            ClientSize = new System.Drawing.Size(1280, 768);
-            MinimumSize = new System.Drawing.Size(1024, 600);
-            Name = "MainForm";
-            StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            Text = "Bloqueo USB – Administrador";
-
+            _navBar = new RUSBP_Admin.Forms.Shared.NavigationBar();
+            _panelContent = new Panel();
+            SuspendLayout();
+            // 
+            // _navBar
+            // 
+            _navBar.Dock = DockStyle.Left;
+            _navBar.Location = new Point(0, 0);
+            _navBar.Name = "_navBar";
+            _navBar.Size = new Size(74, 768);
+            _navBar.TabIndex = 1;
+            // 
+            // _panelContent
+            // 
+            _panelContent.BackColor = Color.FromArgb(16, 24, 32);
+            _panelContent.Dock = DockStyle.Fill;
+            _panelContent.Location = new Point(74, 0);
+            _panelContent.Name = "_panelContent";
+            _panelContent.Size = new Size(1206, 768);
+            _panelContent.TabIndex = 0;
+            // 
+            // MainForm
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            BackColor = Color.FromArgb(16, 24, 32);
+            ClientSize = new Size(1280, 768);
             Controls.Add(_panelContent);
             Controls.Add(_navBar);
+            MinimumSize = new Size(1024, 600);
+            Name = "MainForm";
+            StartPosition = FormStartPosition.CenterScreen;
+            Text = "Bloqueo USB – Administrador";
+            ResumeLayout(false);
         }
         #endregion
     }
 }
+
 
 
 

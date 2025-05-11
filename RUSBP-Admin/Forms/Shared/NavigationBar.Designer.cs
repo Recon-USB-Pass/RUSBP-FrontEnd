@@ -21,13 +21,13 @@
             Log_History = new PictureBox();
             Monitoring = new PictureBox();
             Assingment_Usb = new PictureBox();
-            Logout = new PictureBox();
+            pictureBox5 = new PictureBox();
             flow.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)Profile).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Log_History).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Monitoring).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Assingment_Usb).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)Logout).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox5).BeginInit();
             SuspendLayout();
             // 
             // flow
@@ -38,12 +38,12 @@
             flow.Controls.Add(Log_History);
             flow.Controls.Add(Monitoring);
             flow.Controls.Add(Assingment_Usb);
-            flow.Controls.Add(Logout);
+            flow.Controls.Add(pictureBox5);
             flow.Dock = DockStyle.Fill;
             flow.FlowDirection = FlowDirection.TopDown;
             flow.Location = new Point(0, 0);
             flow.Name = "flow";
-            flow.Size = new Size(174, 911);
+            flow.Size = new Size(72, 719);
             flow.TabIndex = 0;
             flow.WrapContents = false;
             // 
@@ -53,10 +53,11 @@
             Profile.Location = new Point(3, 3);
             Profile.Name = "Profile";
             Profile.Size = new Size(63, 59);
-            Profile.SizeMode = PictureBoxSizeMode.Zoom;
+            Profile.SizeMode = PictureBoxSizeMode.CenterImage;
             Profile.TabIndex = 0;
             Profile.TabStop = false;
-            Profile.Click += Profile_Click;
+            Profile.Tag = "Profile";
+            Profile.Click += Pic_Click;
             // 
             // Log_History
             // 
@@ -64,10 +65,11 @@
             Log_History.Location = new Point(3, 68);
             Log_History.Name = "Log_History";
             Log_History.Size = new Size(63, 55);
-            Log_History.SizeMode = PictureBoxSizeMode.Zoom;
+            Log_History.SizeMode = PictureBoxSizeMode.CenterImage;
             Log_History.TabIndex = 1;
             Log_History.TabStop = false;
-            Log_History.Click += Log_History_Click;
+            Log_History.Tag = "Logs";
+            Log_History.Click += Pic_Click;
             // 
             // Monitoring
             // 
@@ -75,10 +77,11 @@
             Monitoring.Location = new Point(3, 129);
             Monitoring.Name = "Monitoring";
             Monitoring.Size = new Size(63, 61);
-            Monitoring.SizeMode = PictureBoxSizeMode.Zoom;
+            Monitoring.SizeMode = PictureBoxSizeMode.CenterImage;
             Monitoring.TabIndex = 2;
             Monitoring.TabStop = false;
-            Monitoring.Click += Monitoring_Click;
+            Monitoring.Tag = "Monitor";
+            Monitoring.Click += Pic_Click;
             // 
             // Assingment_Usb
             // 
@@ -86,21 +89,22 @@
             Assingment_Usb.Location = new Point(3, 196);
             Assingment_Usb.Name = "Assingment_Usb";
             Assingment_Usb.Size = new Size(63, 61);
-            Assingment_Usb.SizeMode = PictureBoxSizeMode.Zoom;
+            Assingment_Usb.SizeMode = PictureBoxSizeMode.CenterImage;
             Assingment_Usb.TabIndex = 3;
             Assingment_Usb.TabStop = false;
-            Assingment_Usb.Click += Assingment_Usb_Click;
+            Assingment_Usb.Tag = "Assign";
+            Assingment_Usb.Click += Pic_Click;
             // 
-            // Logout
+            // pictureBox5
             // 
-            Logout.Image = Properties.Resources.icon_logout;
-            Logout.Location = new Point(3, 263);
-            Logout.Name = "Logout";
-            Logout.Size = new Size(63, 70);
-            Logout.SizeMode = PictureBoxSizeMode.Zoom;
-            Logout.TabIndex = 4;
-            Logout.TabStop = false;
-            Logout.Click += Logout_Click;
+            pictureBox5.Image = Properties.Resources.icon_logout;
+            pictureBox5.Location = new Point(3, 263);
+            pictureBox5.Name = "pictureBox5";
+            pictureBox5.Size = new Size(63, 70);
+            pictureBox5.SizeMode = PictureBoxSizeMode.CenterImage;
+            pictureBox5.TabIndex = 9;
+            pictureBox5.TabStop = false;
+            pictureBox5.Click += Pic_Click;
             // 
             // NavigationBar
             // 
@@ -108,22 +112,21 @@
             AutoScaleMode = AutoScaleMode.Font;
             Controls.Add(flow);
             Name = "NavigationBar";
-            Size = new Size(174, 911);
+            Size = new Size(72, 719);
             flow.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)Profile).EndInit();
             ((System.ComponentModel.ISupportInitialize)Log_History).EndInit();
             ((System.ComponentModel.ISupportInitialize)Monitoring).EndInit();
             ((System.ComponentModel.ISupportInitialize)Assingment_Usb).EndInit();
-            ((System.ComponentModel.ISupportInitialize)Logout).EndInit();
+            ((System.ComponentModel.ISupportInitialize)pictureBox5).EndInit();
             ResumeLayout(false);
         }
 
         #endregion
-
-        private PictureBox Profile;
         private PictureBox Log_History;
         private PictureBox Monitoring;
         private PictureBox Assingment_Usb;
-        private PictureBox Logout;
+        private PictureBox Profile;
+        private PictureBox pictureBox5;
     }
 }

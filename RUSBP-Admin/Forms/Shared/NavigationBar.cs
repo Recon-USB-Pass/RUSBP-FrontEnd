@@ -1,54 +1,34 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System;
-using System.Drawing;
 using System.Windows.Forms;
 
 namespace RUSBP_Admin.Forms.Shared
 {
     public partial class NavigationBar : UserControl
     {
-        public event Action<string>? SectionSelected;   // "Monitor" | "Assign" | "Detail" | "Logout"
+        /// <summary>
+        /// Se dispara cuando el usuario hace clic en un icono.
+        /// Los tags devueltos son: "Monitor", "Assign", "Logs", "Profile", "Logout".
+        /// </summary>
+        public event Action<string>? SectionSelected;
 
-        public NavigationBar() => InitializeComponent();
-
-        private void btn_Click(object? s, EventArgs e)
+        public NavigationBar()
         {
-            if (s is Button b && b.Tag is string tag)
+            InitializeComponent();
+            
+            // Asignar tags y wire-up en un solo sitio
+            Profile.Tag = "Profile";
+            Log_History.Tag = "Logs";
+            Monitoring.Tag = "Monitor";
+            Assingment_Usb.Tag = "Assign";
+            //BtnLogout.Tag = "Logout";
+            
+        }
+
+        /* ───────────────────────── Eventos ───────────────────────── */
+        private void Pic_Click(object? sender, EventArgs e)
+        {
+            if (sender is PictureBox pic && pic.Tag is string tag)
                 SectionSelected?.Invoke(tag);
-        }
-
-        private void Profile_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Log_History_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Monitoring_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Assingment_Usb_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void Logout_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }
-

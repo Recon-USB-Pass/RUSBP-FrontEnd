@@ -2,6 +2,43 @@
 {
     partial class MonitoringView
     {
+        #region  Designer
+        private void InitializeComponent()
+        {
+            components = new System.ComponentModel.Container();
+            flpCards = new FlowLayoutPanel();
+
+            // 
+            // flpCards
+            // 
+            flpCards.AutoScroll = true;
+            flpCards.Dock = DockStyle.Fill;
+            flpCards.Padding = new Padding(20);
+            flpCards.WrapContents = true;
+            flpCards.Name = "flpCards";
+
+            // 
+            // MonitoringView
+            // 
+            BackColor = Color.FromArgb(16, 24, 32);
+            Controls.Add(flpCards);
+            Name = "MonitoringView";
+            Size = new Size(800, 600);
+            Load += MonitoringView_Load;
+        }
+        #endregion
+
+        private System.ComponentModel.IContainer components = null!;
+        private FlowLayoutPanel flpCards;
+    }
+}
+
+
+/*
+namespace RUSBP_Admin.Forms.Vistas
+{
+    partial class MonitoringView
+    {
         private System.ComponentModel.IContainer components = null;
         private FlowLayoutPanel flpCards;
 
@@ -37,7 +74,7 @@
     }
 }
 
-
+*/
 
 
 

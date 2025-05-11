@@ -17,6 +17,10 @@ namespace RUSBP_Admin.Forms
         private readonly UsbAssignmentView _assignmentView = new();
         private readonly EmployeeDetailView _detailView = new();
         private readonly LogoutView _logoutView = new();
+        
+        MonitoringView monitoringView;
+
+
 
         public MainForm(MonitoringService mon,
                         AuthService auth,
@@ -28,12 +32,15 @@ namespace RUSBP_Admin.Forms
 
             InitializeComponent();
 
-            // ↓ si quieres pasarles los servicios, hazlo por propiedades
-            _monitoringView.SetServices(_mon, _api);
-            _assignmentView.SetServices(_api);
+            _monitoringView.SetServices(_mon, _api);   // ← ping + datos
+            _assignmentView.SetServices(_api);         // ← asignación USB
 
             // hook para navegar al detalle
-
+            _monitoringView.EmployeeSelected += emp =>
+            {
+                _detailView.LoadSingleEmployee(emp);   // cargamos el empleado
+                ShowView(_detailView);           // navegamos al detalle
+            };
 
             _navBar.SectionSelected += NavBar_SectionSelected;
 
@@ -47,17 +54,20 @@ namespace RUSBP_Admin.Forms
                 case "Monitor": ShowView(_monitoringView); break;
                 case "Assign": ShowView(_assignmentView); break;
                 case "Logout": ShowView(_logoutView); break;
+                default: return;
             }
         }
 
-        private void ShowView(UserControl view)
+
+        public void ShowView(UserControl view)
         {
             _panelContent.SuspendLayout();
             _panelContent.Controls.Clear();
-            _panelContent.Controls.Add(view);
             view.Dock = DockStyle.Fill;
+            _panelContent.Controls.Add(view);
             _panelContent.ResumeLayout();
         }
+
     }
 }
 
