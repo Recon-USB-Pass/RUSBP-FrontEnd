@@ -1,12 +1,71 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\forms\\vistas\\usbassignmentview.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:forms\\vistas\\usbassignmentview.designer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\forms\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:forms\\mainform.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\forms\\vistas\\usbassignmentview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:forms\\vistas\\usbassignmentview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 1,
       "VerticalTabListWidth": 256,
-      "DocumentGroups": []
+      "DocumentGroups": [
+        {
+          "DockedHeight": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UsbAssignmentView.Designer.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.Designer.cs",
+              "RelativeDocumentMoniker": "Forms\\Vistas\\UsbAssignmentView.Designer.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.Designer.cs",
+              "RelativeToolTip": "Forms\\Vistas\\UsbAssignmentView.Designer.cs",
+              "ViewState": "AgIAAHAAAAAAAAAAAAAUwIEAAABGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-11T18:04:47.17Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "MainForm.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\MainForm.cs",
+              "RelativeDocumentMoniker": "Forms\\MainForm.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\MainForm.cs",
+              "RelativeToolTip": "Forms\\MainForm.cs",
+              "ViewState": "AgIAABkAAAAAAAAAAAAgwCsAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-11T17:50:39.593Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UsbAssignmentView.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.cs",
+              "RelativeDocumentMoniker": "Forms\\Vistas\\UsbAssignmentView.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.cs",
+              "RelativeToolTip": "Forms\\Vistas\\UsbAssignmentView.cs",
+              "ViewState": "AgIAAGUAAAAAAAAAAAArwHgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-11T17:49:55.386Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
     }
   ]
 }

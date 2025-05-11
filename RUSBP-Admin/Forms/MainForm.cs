@@ -33,7 +33,8 @@ namespace RUSBP_Admin.Forms
             InitializeComponent();
 
             _monitoringView.SetServices(_mon, _api);   // ← ping + datos
-            _assignmentView.SetServices(_api);         // ← asignación USB
+            _assignmentView.UsbPrepared += NavBar_SectionSelected;   // opcional
+
 
             // hook para navegar al detalle
             _monitoringView.EmployeeSelected += emp =>
