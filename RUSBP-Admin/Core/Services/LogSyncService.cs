@@ -1,8 +1,8 @@
 ﻿using System.Text.Json;
 
+
 namespace RUSBP_Admin.Core.Services
 {
-    /*
     /// <summary>
     /// Se encarga de sincronizar los logs locales (uno por USB) con el backend via API.
     /// </summary>
@@ -75,6 +75,4 @@ namespace RUSBP_Admin.Core.Services
                 await SyncFileAsync(path, ct);
         }
     }
-
-    */
 }

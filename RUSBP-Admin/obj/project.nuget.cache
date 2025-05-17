@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "+3s+JdnVrQg=",
+  "dgSpecHash": "QBSPInly8wM=",
   "success": true,
   "projectFilePath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\RUSBP-Admin.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\RUSBP\\.nuget\\packages\\microsoft.extensions.dependencyinjection\\9.0.5\\microsoft.extensions.dependencyinjection.9.0.5.nupkg.sha512",
+    "C:\\Users\\RUSBP\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\9.0.5\\microsoft.extensions.dependencyinjection.abstractions.9.0.5.nupkg.sha512",
     "C:\\Users\\RUSBP\\.nuget\\packages\\system.codedom\\9.0.4\\system.codedom.9.0.4.nupkg.sha512",
     "C:\\Users\\RUSBP\\.nuget\\packages\\system.management\\9.0.4\\system.management.9.0.4.nupkg.sha512"
   ],

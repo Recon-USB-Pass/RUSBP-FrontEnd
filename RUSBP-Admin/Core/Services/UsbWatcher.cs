@@ -1,159 +1,82 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Management;
-using System.Threading.Tasks;
-using RUSBP_Admin.Core.Services;   // LoggingService & BitLockerService
+﻿using System.Management;
 
-namespace RUSBP_Admin.Core.Services
+namespace RUSBP_Admin.Core.Services;
+
+/// <summary>Observa inserción / extracción de USB y resuelve si contiene los archivos PEM válidos.</summary>
+public sealed class UsbWatcher : IDisposable
 {
-    /// <summary>
-    /// Vigila conexiones/desconexiones de volúmenes USB, intenta
-    /// desbloquear BitLocker y levanta un evento indicando si la llave es válida
-    /// (es decir, contiene <c>key.txt</c>).
-    /// </summary>
-    public sealed class UsbWatcher : IDisposable
+    /* ────── Tipos de estado que notificamos ────── */
+    public enum UsbStatus { None, Detected, Verified, Error }
+
+    /// <summary>Se dispara cada vez que cambia el estado del USB.</summary>
+    public event Action<UsbStatus>? StateChanged;
+
+    private readonly ManagementEventWatcher _insertWatcher;
+    private readonly ManagementEventWatcher _removeWatcher;
+    private readonly UsbCryptoService _crypto = new();
+
+    private UsbStatus _lastStatus = UsbStatus.None;
+
+    public UsbWatcher()
     {
-        private readonly ManagementEventWatcher _insertWatcher;
-        private readonly ManagementEventWatcher _removeWatcher;
-        private HashSet<string> _prevSerials = new();
+        _insertWatcher = new ManagementEventWatcher(
+            new WqlEventQuery("SELECT * FROM Win32_VolumeChangeEvent WHERE EventType = 2")); // insert
+        _removeWatcher = new ManagementEventWatcher(
+            new WqlEventQuery("SELECT * FROM Win32_VolumeChangeEvent WHERE EventType = 3")); // remove
 
-        public event Action<bool>? StateChanged;  // true → USB válido presente
+        EventArrivedEventHandler h = async (_, __) => await CheckAsync();
+        _insertWatcher.EventArrived += h;
+        _removeWatcher.EventArrived += h;
 
-        private const string BITLOCKER_PASS = "Zarate_123";   // o léelo de ConfigService
-        private const string LOG_DIR = "logs";
+        _insertWatcher.Start();
+        _removeWatcher.Start();
 
-        public UsbWatcher()
+        _ = CheckAsync();   // chequeo inicial
+    }
+
+    /* ───────────── NÚCLEO ───────────── */
+    private async Task CheckAsync()
+    {
+        await Task.Delay(600); // espera montaje de letra
+        UsbStatus newSt = _crypto.TryLocateUsb()
+                        ? UsbStatus.Detected            // encontramos un USB con PEM
+                        : UsbStatus.None;
+
+        if (newSt != _lastStatus)
+            SetStatus(newSt);
+    }
+
+    /// <summary>Llamar cuando la verificación contra el backend se completa.</summary>
+    public void SetVerified(bool ok)
+        => SetStatus(ok ? UsbStatus.Verified : UsbStatus.Error);
+
+    /* ───────────── Helpers ───────────── */
+
+    private void SetStatus(UsbStatus st)
+    {
+        _lastStatus = st;
+        LogDebug($"UsbWatcher → {st}");
+        StateChanged?.Invoke(st);
+    }
+
+    private static void LogDebug(string msg)
+    {
+        try
         {
-            _insertWatcher = new(new WqlEventQuery(
-                "SELECT * FROM Win32_VolumeChangeEvent WHERE EventType = 2"));
-            _removeWatcher = new(new WqlEventQuery(
-                "SELECT * FROM Win32_VolumeChangeEvent WHERE EventType = 3"));
-
-            EventArrivedEventHandler h = async (_, __) => await RefreshAsync();
-            _insertWatcher.EventArrived += h;
-            _removeWatcher.EventArrived += h;
-
-            _insertWatcher.Start();
-            _removeWatcher.Start();
-
-            _ = RefreshAsync(); // chequeo inicial
-        }
-
-        /* --------------- núcleo --------------- */
-        private async Task RefreshAsync()
-        {
-            await Task.Delay(500); // espera que Windows monte la letra
-
-            var infos = EnumerarUsbInfos();
-            var current = infos.Select(i => i.Serial).ToHashSet();
-
-            foreach (var s in current.Except(_prevSerials))
-                LogEvento(s, "Conectado");
-            foreach (var s in _prevSerials.Except(current))
-                LogEvento(s, "Desconectado");
-
-            _prevSerials = current;
-
-            bool llaveOk = false;
-
-            foreach (var info in infos)
-            {
-                // intenta desbloquear todas las particiones por si están cifradas
-                foreach (var letter in info.Letters)
-                    BitLockerService.TryUnlock(letter, BITLOCKER_PASS);
-
-                if (ExisteKeyTxt(info.Letters))
-                {
-                    LoggingService.Debug($"USB válido detectado: {info.Serial}");
-                    llaveOk = true;
-                    break;
-                }
-            }
-
-            StateChanged?.Invoke(llaveOk);
-        }
-
-        /* -------- Enumeración de discos -------- */
-        private record UsbInfo(string Serial, List<string> Letters);
-
-        private static string SerialFromPnp(string pnp) =>
-            pnp.Split('\\').LastOrDefault()?.Split('&').FirstOrDefault() ?? "";
-
-        private static List<UsbInfo> EnumerarUsbInfos()
-        {
-            var list = new List<UsbInfo>();
-
-            var ddr = new ManagementObjectSearcher(
-                "SELECT DeviceID, PNPDeviceID FROM Win32_DiskDrive WHERE InterfaceType='USB'");
-
-            foreach (ManagementObject d in ddr.Get())
-            {
-                string serial = SerialFromPnp(d["PNPDeviceID"]?.ToString() ?? "");
-                if (serial == "") continue;
-
-                var letters = new List<string>();
-                foreach (ManagementObject part in d.GetRelated("Win32_DiskPartition"))
-                    foreach (ManagementObject log in part.GetRelated("Win32_LogicalDisk"))
-                        letters.Add(log["DeviceID"].ToString() + @"\");
-
-                list.Add(new UsbInfo(serial, letters));
-            }
-            return list;
-        }
-
-        /* ------------- key.txt presente ------------- */
-        private static bool ExisteKeyTxt(IEnumerable<string> letters)
-        {
-            foreach (var letter in letters)
-            {
-                string root = letter.EndsWith(@"\") ? letter : letter + @"\";
-                try
-                {
-                    if (Directory.Exists(root))
-                    {
-                        if (File.Exists(Path.Combine(root, "key.txt")))
-                            return true;
-                    }
-                }
-                catch (UnauthorizedAccessException) { /* ignorar */ }
-            }
-            return false;
-        }
-
-        /* ---------------- LOG helpers ---------------- */
-        private static void LogEvento(string serial, string evento)
-        {
-            if (string.IsNullOrWhiteSpace(serial)) return;
-
-            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-            Directory.CreateDirectory(logDir);
-
-            string shortId = serial.Length > 8 ? serial[^8..] : serial;
-            string path = Path.Combine(logDir, $"usb_{shortId}.txt");
+            string dir = Path.Combine(Path.GetTempPath(), "RUSBP", "logs");
+            Directory.CreateDirectory(dir);
             string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-
-            File.AppendAllText(path, $"{ts} - {evento}{Environment.NewLine}");
+            File.AppendAllText(Path.Combine(dir, "debug.txt"),
+                               $"{ts} - {msg}{Environment.NewLine}");
         }
-        private static void LogDebug(string msg)
-        {
-            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-            Directory.CreateDirectory(logDir);
-            string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-            File.AppendAllText(Path.Combine(logDir, "debug.txt"), $"{ts} - {msg}{Environment.NewLine}");
-        }
+        catch { /* best-effort */ }
+    }
 
-
-
-        /* ---------------- limpieza ---------------- */
-        public void Dispose()
-        {
-            _insertWatcher.Stop();
-            _removeWatcher.Stop();
-            _insertWatcher.Dispose();
-            _removeWatcher.Dispose();
-        }
+    public void Dispose()
+    {
+        _insertWatcher.Stop();
+        _removeWatcher.Stop();
+        _insertWatcher.Dispose();
+        _removeWatcher.Dispose();
     }
 }

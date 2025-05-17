@@ -1,9 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Windows.Forms;
-
-
-
+﻿using Microsoft.Extensions.DependencyInjection;
 using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms;
 
@@ -14,49 +9,46 @@ namespace RUSBP_Admin
         [STAThread]
         static void Main()
         {
+            // Mutex global para evitar instancias duplicadas
+            using var mutex = new Mutex(true, "RUSBP_USB_LOCK_AGENT_ADMIN", out bool createdNew);
+            if (!createdNew) return;          // Otra instancia ya corre
+
             ApplicationConfiguration.Initialize();
 
-            var api = ApiClientFactory.Create("http://192.168.1.209:8080");
+            /* === DI compartida === */
+            var services = new ServiceCollection();
 
-            var auth = new AuthService(api);
-            var mon = new MonitoringService(api);
+            // Base URL – mismo backend que el agente empleado
+            var api = new ApiClient("https://192.168.1.209:8443");
 
-            using var login = new LoginForm(auth);
-            if (login.ShowDialog() != DialogResult.OK) return;
+            services.AddSingleton(api);
+            services.AddSingleton<UsbCryptoService>();
+            services.AddSingleton<LogSyncService>();
+            // Servicios propios de admin
+            services.AddSingleton<MonitoringService>();
+            //services.AddSingleton<AuthService>();
+
+            var sp = services.BuildServiceProvider();
+
+            /* === Pantalla de login (puede reutilizar la del empleado) === */
+            var login = new RUSBP_Admin.LoginForm(
+                sp.GetRequiredService<ApiClient>(),
+                sp.GetRequiredService<UsbCryptoService>(),
+                null,
+                sp.GetRequiredService<LogSyncService>());
+
+            if (login.ShowDialog() != DialogResult.OK)
+                return;  // Login cancelado o fallido
+
+            /* ==== Flujo principal Admin ==== */
+            var monService = sp.GetRequiredService<MonitoringService>();
+            //var authService = sp.GetRequiredService<AuthService>();
 
             using var cts = new CancellationTokenSource();
-            _ = mon.StartPollingAsync(cts.Token);   // ✔ firma corregida
+            _ = monService.StartPollingAsync(cts.Token);   // monitoreo en background
 
-            Application.Run(new MainForm(mon, auth, api));
+            Application.Run(new MainForm(monService, /*authService,*/ api));
             cts.Cancel();
         }
     }
 }
-
-
-
-
-/*
-using RUSBP_Admin.Forms;
-
-namespace RUSBP_Admin
-{
-    internal static class Program
-    {
-        /// <summary>
-        ///  The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main()
-        {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
-            using var login = new LoginForm();
-            if (login.ShowDialog() == DialogResult.OK)
-                Application.Run(new MainForm());
-
-        }
-    }
-}
-*/

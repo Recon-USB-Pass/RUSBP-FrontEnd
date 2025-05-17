@@ -1,51 +1,38 @@
-﻿using System;
-using System.Drawing;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
+﻿using System.Runtime.InteropServices;
 
-namespace RUSBP_Admin.Core.Helpers
+namespace RUSBP_Admin.Core.Helpers;
+
+public static class CursorGuard
 {
-    public static class CursorGuard
+    private static bool _locked;
+
+    /// <summary>Restringe el cursor a un rectángulo interior del control (padding píxeles).</summary>
+    public static void RestrictToControl(Control ctl, Padding pad)
     {
-        [StructLayout(LayoutKind.Sequential)]
-        private struct RECT { public int Left, Top, Right, Bottom; }
+        if (_locked) return;
 
-        [DllImport("user32.dll")] private static extern bool ClipCursor(ref RECT rect);
-        [DllImport("user32.dll")] private static extern bool ClipCursor(IntPtr rect);      // libera
-        [DllImport("user32.dll")] private static extern bool GetClipCursor(out RECT lpRect);
+        var r = ctl.RectangleToScreen(ctl.ClientRectangle);
+        r.Inflate(-pad.Left, -pad.Top);
 
-        /// <summary>Restringe el cursor a las coordenadas absolutas indicadas.</summary>
-        public static void Restrict(Rectangle screenArea)
-        {
-            RECT r = new()
-            {
-                Left = screenArea.Left,
-                Top = screenArea.Top,
-                Right = screenArea.Right,
-                Bottom = screenArea.Bottom
-            };
+        RECT clip = new() { Left = r.Left, Top = r.Top, Right = r.Right, Bottom = r.Bottom };
+        ClipCursor(ref clip);
+        _locked = true;
+    }
 
-            if (!ClipCursor(ref r))
-                MessageBox.Show("ClipCursor falló (¿sin privilegios?).", "CursorGuard");
-        }
+    public static void Release()
+    {
+        if (!_locked) return;
+        RECT empty = new();
+        ClipCursor(ref empty);
+        _locked = false;
+    }
 
-        /// <summary>Restringe al área interior de un control (en coordenadas de pantalla).</summary>
-        public static void RestrictToControl(Control ctl, Padding margin)
-        {
-            var tl = ctl.PointToScreen(new Point(margin.Left, margin.Top));
-            var br = ctl.PointToScreen(new Point(ctl.ClientSize.Width - margin.Right,
-                                                 ctl.ClientSize.Height - margin.Bottom));
+    [DllImport("user32.dll")]
+    private static extern bool ClipCursor(ref RECT lpRect);
 
-            Restrict(new Rectangle(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y));
-        }
-
-        public static void Release() => ClipCursor(IntPtr.Zero);
-
-        public static Rectangle? CurrentArea()
-        {
-            return GetClipCursor(out RECT r)
-                ? new Rectangle(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top)
-                : null;
-        }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT
+    {
+        public int Left, Top, Right, Bottom;
     }
 }

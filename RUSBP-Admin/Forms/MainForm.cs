@@ -1,7 +1,4 @@
-﻿using System;
-using System.Windows.Forms;
-using RUSBP_Admin.Core.Services;
-using RUSBP_Admin.Forms.Shared;
+﻿using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms.Vistas;
 
 namespace RUSBP_Admin.Forms
@@ -9,7 +6,7 @@ namespace RUSBP_Admin.Forms
     public partial class MainForm : Form
     {
         private readonly MonitoringService _mon;
-        private readonly AuthService _auth;
+        //private readonly AuthService _auth;
         private readonly ApiClient _api;
 
         //  vistas
@@ -23,11 +20,11 @@ namespace RUSBP_Admin.Forms
 
 
         public MainForm(MonitoringService mon,
-                        AuthService auth,
+                        /*AuthService auth,*/
                         ApiClient api)
         {
             _mon = mon;
-            _auth = auth;
+            //_auth = auth;
             _api = api;
 
             InitializeComponent();

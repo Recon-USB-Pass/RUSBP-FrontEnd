@@ -18,7 +18,6 @@ C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP-Admin.pdb
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP-Admin.genruntimeconfig.cache
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\ref\RUSBP-Admin.dll
-C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Forms.LoginForm.resources
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Properties.Resources.resources
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP-Admin.csproj.AssemblyReference.cache
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\System.CodeDom.dll
@@ -31,3 +30,6 @@ C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Forms.Vistas.MonitoringView.resources
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Forms.Vistas.SettingsView.resources
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Forms.Vistas.UsbAssignmentView.resources
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.DependencyInjection.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.LoginForm.resources
