@@ -2,6 +2,8 @@
 using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms;
 using static RUSBP_Admin.LoginForm;
+using RUSBP_Admin.Core;
+using System.Diagnostics;
 
 namespace RUSBP_Admin
 {
@@ -20,7 +22,7 @@ namespace RUSBP_Admin
             var services = new ServiceCollection();
 
             // Base URL – mismo backend que el agente empleado
-            var api = new ApiClient("https://10.145.0.56:8443");
+            var api = new ApiClient(AppConfig.BackendBaseUrl);
 
             services.AddSingleton(api);
             services.AddSingleton<UsbCryptoService>();

@@ -14,18 +14,20 @@ namespace RUSBP_Admin.Core.Services
     {
         private readonly HttpClient _http;
 
-        /* ───────────── ctor ───────────── */
+        /* ───────────── Actor ───────────── */
+
         public ApiClient(string baseUrl)
         {
             var handler = new HttpClientHandler
             {
-                // ⚠️  Solo en desarrollo: aceptar certificados self-signed
-                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+                // ⚠ SOLO para desarrollo: acepta cualquier cert
+                ServerCertificateCustomValidationCallback = (_, __, ___, ____) => true
             };
+
             _http = new HttpClient(handler)
             {
-                BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/"),
-                Timeout = TimeSpan.FromSeconds(15)
+                BaseAddress = new Uri(baseUrl),
+                Timeout = TimeSpan.FromSeconds(10)
             };
         }
 
@@ -77,6 +79,7 @@ namespace RUSBP_Admin.Core.Services
             }
             catch (Exception ex)
             {
+                MessageBox.Show(ex.ToString(), "Detalle excepción", MessageBoxButtons.OK,MessageBoxIcon.Error);
                 MostrarErrorConexion(ex);
                 return null;
             }

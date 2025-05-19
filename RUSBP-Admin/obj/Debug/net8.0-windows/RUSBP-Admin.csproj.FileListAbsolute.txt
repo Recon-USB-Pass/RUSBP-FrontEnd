@@ -33,3 +33,16 @@ C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.DependencyInjection.dll
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.DependencyInjection.Abstractions.dll
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.LoginForm.resources
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.Configuration.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.Configuration.FileExtensions.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.Configuration.Json.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.FileProviders.Physical.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.FileSystemGlobbing.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\Microsoft.Extensions.Primitives.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\System.IO.Pipelines.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\System.Text.Encodings.Web.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\System.Text.Json.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\appsettings.json
