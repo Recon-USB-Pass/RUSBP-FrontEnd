@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RUSBP-Admin")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ab1372f7ba4e6a53df83b15069782e2d89d942d4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3a6a5ba717d916b4d9955a7e38585e4fa601ac4d")]
 [assembly: System.Reflection.AssemblyProductAttribute("RUSBP-Admin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RUSBP-Admin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
