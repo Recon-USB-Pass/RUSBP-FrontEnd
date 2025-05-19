@@ -21,13 +21,13 @@
             Log_History = new PictureBox();
             Monitoring = new PictureBox();
             Assingment_Usb = new PictureBox();
-            pictureBox5 = new PictureBox();
+            Btn_Logout = new PictureBox();
             flow.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)Profile).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Log_History).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Monitoring).BeginInit();
             ((System.ComponentModel.ISupportInitialize)Assingment_Usb).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox5).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)Btn_Logout).BeginInit();
             SuspendLayout();
             // 
             // flow
@@ -38,7 +38,7 @@
             flow.Controls.Add(Log_History);
             flow.Controls.Add(Monitoring);
             flow.Controls.Add(Assingment_Usb);
-            flow.Controls.Add(pictureBox5);
+            flow.Controls.Add(Btn_Logout);
             flow.Dock = DockStyle.Fill;
             flow.FlowDirection = FlowDirection.TopDown;
             flow.Location = new Point(0, 0);
@@ -95,16 +95,16 @@
             Assingment_Usb.Tag = "Assign";
             Assingment_Usb.Click += Pic_Click;
             // 
-            // pictureBox5
+            // Btn_Logout
             // 
-            pictureBox5.Image = Properties.Resources.icon_logout;
-            pictureBox5.Location = new Point(3, 263);
-            pictureBox5.Name = "pictureBox5";
-            pictureBox5.Size = new Size(63, 70);
-            pictureBox5.SizeMode = PictureBoxSizeMode.CenterImage;
-            pictureBox5.TabIndex = 9;
-            pictureBox5.TabStop = false;
-            pictureBox5.Click += Pic_Click;
+            Btn_Logout.Image = Properties.Resources.icon_logout;
+            Btn_Logout.Location = new Point(3, 263);
+            Btn_Logout.Name = "Btn_Logout";
+            Btn_Logout.Size = new Size(63, 70);
+            Btn_Logout.SizeMode = PictureBoxSizeMode.CenterImage;
+            Btn_Logout.TabIndex = 9;
+            Btn_Logout.TabStop = false;
+            Btn_Logout.Click += Pic_Click;
             // 
             // NavigationBar
             // 
@@ -118,7 +118,7 @@
             ((System.ComponentModel.ISupportInitialize)Log_History).EndInit();
             ((System.ComponentModel.ISupportInitialize)Monitoring).EndInit();
             ((System.ComponentModel.ISupportInitialize)Assingment_Usb).EndInit();
-            ((System.ComponentModel.ISupportInitialize)pictureBox5).EndInit();
+            ((System.ComponentModel.ISupportInitialize)Btn_Logout).EndInit();
             ResumeLayout(false);
         }
 
@@ -127,6 +127,6 @@
         private PictureBox Monitoring;
         private PictureBox Assingment_Usb;
         private PictureBox Profile;
-        private PictureBox pictureBox5;
+        private PictureBox Btn_Logout;
     }
 }

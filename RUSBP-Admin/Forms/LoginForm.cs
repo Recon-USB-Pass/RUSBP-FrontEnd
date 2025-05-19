@@ -2,6 +2,8 @@
 using RUSBP_Admin.Core.Helpers;
 using RUSBP_Admin.Core.Services;
 
+using System.Runtime.InteropServices;
+
 namespace RUSBP_Admin
 {
     /// <summary>Pantalla de bloqueo del empleado.</summary>
@@ -31,6 +33,7 @@ namespace RUSBP_Admin
         /* ───────────── LogOut ───────────── */
         private NotifyIcon? _trayIcon;
         private Button? _btnLogout;
+        private bool _authSuccess = false;// ① campo nuevo
 
 
         /* ───────────── UI ───────────── */
@@ -56,7 +59,11 @@ namespace RUSBP_Admin
 
             /* Watcher USB */
             _watcher = new UsbWatcher();
-            _watcher.StateChanged += st => Invoke(() => OnUsbStatusChanged(st));
+            _watcher.StateChanged += st =>
+            {
+                if (IsHandleCreated)
+                    BeginInvoke(() => OnUsbStatusChanged(st));
+            };
         }
 
         /* ───────────── UI helpers ───────────── */
@@ -305,6 +312,9 @@ namespace RUSBP_Admin
 
         /* ───────────── Login (PIN) ───────────── */
 
+        // Campo nuevo a nivel de clase (déjalo arriba, fuera del método):
+        // private bool _authSuccess = false;
+
         private async Task OnLoginAsync()
         {
             if (_serial is null || _challenge is null) return;
@@ -318,66 +328,60 @@ namespace RUSBP_Admin
                                              .FirstOrDefault(i => i.OperationalStatus == OperationalStatus.Up)?
                                              .GetPhysicalAddress().ToString() ?? "";
 
-                // Puedes obtener el rut desde la sesión, USB, o pedirlo antes
-                string userRut = ObtenerRutEmpleado(); // <-- reemplaza por tu método real
+                string userRut = ObtenerRutEmpleado();   // obtén el RUT según tu lógica
 
                 var (ok, err) = await _api.LoginAsync(_serial, sig, _txtPin.Text.Trim(), mac);
                 if (ok)
                 {
-                    // 1. Registrar evento de login
-                    if (_logManager != null)
+                    /* 1. Registrar evento */
+                    _logManager?.AddEvent(new LogEvent
                     {
-                        var log = new LogEvent
-                        {
-                            UserRut = userRut,
-                            UsbSerial = _serial,
-                            EventType = "conexión",
-                            Ip = ObtenerIpLocal(),
-                            Mac = mac,
-                            Timestamp = DateTime.UtcNow
-                        };
-                        _logManager.AddEvent(log);
-                    }
+                        UserRut = userRut,
+                        UsbSerial = _serial,
+                        EventType = "conexión",
+                        Ip = ObtenerIpLocal(),
+                        Mac = mac,
+                        Timestamp = DateTime.UtcNow
+                    });
 
-                    // 2. Sincronizar logs pendientes (batch)
+                    /* 2. Sincronizar logs pendientes */
                     if (_logSync != null)
                         await _logSync.SyncUsbAsync(_serial);
 
-                    // 3. Cerrar vista de login
+                    /* 3. Salida exitosa */
                     CursorGuard.Release();
                     KeyboardHook.Uninstall();
+
+                    _authSuccess = true;            // <─ evita bloqueo en OnFormClosing
+                    _watcher.Dispose();                // ← ① DETIENE eventos después de cerrar
                     DialogResult = DialogResult.OK;
-                    CambiarAModoLogoutUI(mac);
+                    Close();                          // cierra LoginForm y vuelve a Program.cs
                     return;
                 }
-                else if (err?.Contains("Challenge vencido") == true)
+
+                /* --- Errores de challenge o backend --- */
+                if (err?.Contains("Challenge vencido") == true)
                 {
                     MessageBox.Show("Challenge vencido. Reintentando...");
-                    await BeginVerificationAsync();
                 }
                 else
                 {
                     MessageBox.Show(err ?? "Error desconocido");
-                    await BeginVerificationAsync();
                 }
-
+                await BeginVerificationAsync();       // re-verifica/rehace el reto
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Error de conexión:\n" + ex.Message);
-                if (_logManager != null)
+
+                _logManager?.AddEvent(new LogEvent
                 {
-                    var log = new LogEvent
-                    {
-                        UserRut = _userRut ?? "(desconocido)",
-                        UsbSerial = _serial ?? "(desconocido)",
-                        EventType = "login_fail",
-                        Ip = ObtenerIpLocal(),
-                        Mac = "", // no hay mac disponible en error
-                        Timestamp = DateTime.UtcNow
-                    };
-                    _logManager.AddEvent(log);
-                }
+                    UserRut = _userRut ?? "(desconocido)",
+                    UsbSerial = _serial ?? "(desconocido)",
+                    EventType = "login_fail",
+                    Ip = ObtenerIpLocal(),
+                    Timestamp = DateTime.UtcNow
+                });
             }
             finally
             {
@@ -389,8 +393,33 @@ namespace RUSBP_Admin
 
 
 
+        /// <summary>Supervisa la presencia física del USB administrador.</summary>
+        public sealed class UsbSessionGuard : IDisposable
+        {
+            private readonly UsbWatcher _watcher;
+            private readonly Func<Task> _onUsbRemovedAsync;
 
-        /* ───────────── Extras para LogOut ───────────── */
+            public UsbSessionGuard(Func<Task> onUsbRemovedAsync)
+            {
+                _onUsbRemovedAsync = onUsbRemovedAsync;
+                _watcher = new UsbWatcher();
+                _watcher.StateChanged += Handle;
+            }
+
+            private async void Handle(UsbWatcher.UsbStatus st)
+            {
+                if (st == UsbWatcher.UsbStatus.None)
+                {
+                    await _onUsbRemovedAsync();   // ① realiza logout / flush / restart
+                    LockWorkStation();            // ② bloquea la estación
+                }
+            }
+
+            [DllImport("user32.dll")] private static extern bool LockWorkStation();
+            public void Dispose() => _watcher.Dispose();
+        }
+
+        /* ───────────── Extras para LogOut ───────────── *//*
         private void CambiarAModoLogoutUI(string mac)
         {
             // Oculta controles innecesarios y muestra solo Logout
@@ -439,7 +468,7 @@ namespace RUSBP_Admin
             // Oculta la ventana, pero deja el icono activo
             Hide();
             ShowInTaskbar = false;
-        }
+        }*/ //Elimina todo el bloque CambiarAModoLogoutUI, _trayIcon, _btnLogout y referencias.
 
         // Muestra ventana desde tray icon
         private void MostrarVentana()
@@ -503,8 +532,9 @@ namespace RUSBP_Admin
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            if (e.CloseReason != CloseReason.UserClosing)
+            if (!_authSuccess)   // solo bloquea si NO fue login válido
                 LockWorkStation();
+
             base.OnFormClosing(e);
         }
 

@@ -20,7 +20,7 @@ namespace RUSBP_Admin.Forms.Shared
             Log_History.Tag = "Logs";
             Monitoring.Tag = "Monitor";
             Assingment_Usb.Tag = "Assign";
-            //BtnLogout.Tag = "Logout";
+            Btn_Logout.Tag = "Logout";
             
         }
 

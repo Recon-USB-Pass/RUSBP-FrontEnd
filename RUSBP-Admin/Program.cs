@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using RUSBP_Admin.Core.Services;
 using RUSBP_Admin.Forms;
+using static RUSBP_Admin.LoginForm;
 
 namespace RUSBP_Admin
 {
@@ -19,7 +20,7 @@ namespace RUSBP_Admin
             var services = new ServiceCollection();
 
             // Base URL – mismo backend que el agente empleado
-            var api = new ApiClient("https://192.168.1.209:8443");
+            var api = new ApiClient("https://10.145.0.56:8443");
 
             services.AddSingleton(api);
             services.AddSingleton<UsbCryptoService>();
@@ -31,7 +32,7 @@ namespace RUSBP_Admin
             var sp = services.BuildServiceProvider();
 
             /* === Pantalla de login (puede reutilizar la del empleado) === */
-            var login = new RUSBP_Admin.LoginForm(
+            var login = new LoginForm(
                 sp.GetRequiredService<ApiClient>(),
                 sp.GetRequiredService<UsbCryptoService>(),
                 null,
@@ -47,7 +48,11 @@ namespace RUSBP_Admin
             using var cts = new CancellationTokenSource();
             _ = monService.StartPollingAsync(cts.Token);   // monitoreo en background
 
-            Application.Run(new MainForm(monService, /*authService,*/ api));
+            var mainForm = new MainForm(monService, api);
+
+            using var guard = new UsbSessionGuard(async () => await mainForm.LogoutFromUsbRemovalAsync()); ;
+
+            Application.Run(new MainForm(monService, api));
             cts.Cancel();
         }
     }

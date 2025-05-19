@@ -1,4 +1,7 @@
-﻿using System.Net.Http.Json;
+﻿using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text;
 using RUSBP_Admin.Core.Models;
 using RUSBP_Admin.Core.Models.Dtos;
 
@@ -193,5 +196,24 @@ namespace RUSBP_Admin.Core.Services
             }
             catch { /* ignore */ }
         }
+        public async Task<HttpResponseMessage> SendAsync(HttpMethod method,
+                                                 string path,
+                                                 object? body = null,
+                                                 CancellationToken ct = default)
+        {
+            using var msg = new HttpRequestMessage(method, path);
+            if (body != null)
+            {
+                var json = JsonSerializer.Serialize(body);
+                msg.Content = new StringContent(json,
+                                                Encoding.UTF8,
+                                                "application/json");
+            }
+
+            var resp = await _http.SendAsync(msg, ct);
+            resp.EnsureSuccessStatusCode();
+            return resp;
+        }
+
     }
 }
