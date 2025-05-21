@@ -12,7 +12,8 @@ namespace RUSBP_Admin.Forms
 
         /* ─────────── Vistas ─────────── */
         private readonly MonitoringView _monitoringView = new();
-        private readonly UsbAssignmentView _assignmentView = new();
+        private readonly UsbCryptoService _usbService = new UsbCryptoService();
+        private readonly UsbAssignmentView _assignmentView;
         private readonly EmployeeDetailView _detailView = new();
         private readonly LogoutView _logoutView = new();
 
@@ -22,6 +23,8 @@ namespace RUSBP_Admin.Forms
             _api = api;
 
             InitializeComponent();
+
+            _assignmentView = new UsbAssignmentView(api, _usbService);
 
             /* Tray-icon (restaurar) */
             if (_tray == null)

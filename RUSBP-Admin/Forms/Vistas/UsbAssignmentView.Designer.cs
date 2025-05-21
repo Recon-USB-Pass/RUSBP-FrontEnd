@@ -14,256 +14,307 @@
         {
             components = new System.ComponentModel.Container();
 
-            /* ========== panel izquierdo (USB) ========== */
+            /* ========== Panel Izquierdo: USB ========== */
             panelLeft = new Panel
             {
-                Dock = DockStyle.Left,
-                Width = 260,
-                BackColor = Color.FromArgb(10, 25, 60),
-                Padding = new Padding(20)
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(12, 28, 54),
+                Padding = new Padding(24)
+            };
+
+            lblUsbSection = new Label
+            {
+                Text = "Conexión USB",
+                Dock = DockStyle.Top,
+                Height = 36,
+                Font = new Font("Segoe UI", 18, FontStyle.Bold),
+                ForeColor = Color.White,
+                TextAlign = ContentAlignment.MiddleCenter,
+                Padding = new Padding(0, 18, 0, 18)
             };
 
             picUsb = new PictureBox
             {
                 Dock = DockStyle.Top,
-                Height = 180,
-                Image = Properties.Resources.usb_icon_off,   // cambia si tienes otro recurso
-                SizeMode = PictureBoxSizeMode.Zoom
+                Height = 160,
+                Image = Properties.Resources.usb_on,   // Cambia si tienes un recurso custom
+                SizeMode = PictureBoxSizeMode.Zoom,
+                Margin = new Padding(0, 20, 0, 20)
             };
 
             btnDetect = new Button
             {
                 Text = "Detectar USB",
                 Dock = DockStyle.Top,
-                Height = 40,
+                Height = 44,
                 FlatStyle = FlatStyle.Flat,
-                BackColor = Color.RoyalBlue,
+                BackColor = Color.FromArgb(38, 97, 214),
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 ForeColor = Color.White,
-                Margin = new Padding(0, 20, 0, 10)
+                Margin = new Padding(0, 16, 0, 12)
             };
             btnDetect.Click += btnDetect_Click;
 
             _lblUsbName = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 22,
+                Height = 30,
+                Font = new Font("Segoe UI", 13, FontStyle.Regular),
                 ForeColor = Color.White,
                 Text = "Nombre del Dispositivo",
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(0, 10, 0, 2)
             };
+
             _lblUsbSize = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 20,
+                Height = 24,
+                Font = new Font("Segoe UI", 11, FontStyle.Regular),
                 ForeColor = Color.Gainsboro,
                 Text = "-",
-                Margin = new Padding(0, 4, 0, 0)
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(0, 0, 0, 10)
             };
 
-            /* se añaden de abajo hacia arriba para que el orden visual sea correcto */
             panelLeft.Controls.Add(_lblUsbSize);
             panelLeft.Controls.Add(_lblUsbName);
             panelLeft.Controls.Add(btnDetect);
             panelLeft.Controls.Add(picUsb);
+            panelLeft.Controls.Add(lblUsbSection);
 
-            /* ========== panel central (grupo info) ========== */
+            /* ========== Panel Central: Configuración USB ========== */
             _grpInfo = new GroupBox
             {
-                Text = "Configuración del Dispositivo USB",
+                Text = "",
                 Dock = DockStyle.Fill,
-                Padding = new Padding(20),
+                Padding = new Padding(24),
+                BackColor = Color.FromArgb(18, 27, 38),
                 ForeColor = Color.White
             };
 
-            var lblNombre = new Label { Text = "Nombre completo", ForeColor = Color.White };
-            var lblRut = new Label { Text = "RUT", ForeColor = Color.White };
-            var lblDepto = new Label { Text = "Departamento", ForeColor = Color.White };
-            var lblMail = new Label { Text = "Correo", ForeColor = Color.White };
-            var lblRol = new Label { Text = "Rol", ForeColor = Color.White };
-
-            txtNombre = new TextBox { Width = 260 };
-            txtRut = new TextBox { Width = 260 };
-            txtDepto = new TextBox { Width = 260 };
-            txtMail = new TextBox { Width = 260 };
-            cmbRol = new ComboBox
+            lblMain = new Label
             {
-                Width = 180,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Items = { "Admin", "User" }
+                Text = "Configuración del Dispositivo USB",
+                Font = new Font("Segoe UI", 20, FontStyle.Bold),
+                Dock = DockStyle.Top,
+                Height = 48,
+                ForeColor = Color.White,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
+            /* Subtítulo */
+            lblSub = new Label
+            {
+                Text = "Información del Empleado",
+                Font = new Font("Segoe UI", 13, FontStyle.Bold),
+                Dock = DockStyle.Top,
+                Height = 30,
+                ForeColor = Color.White,
+                Margin = new Padding(0, 14, 0, 4)
+            };
+
+            /* Entradas de Usuario */
+            txtNombre = MakeInput("Nombre Completo");
+            txtRut = MakeInput("RUT");
+            txtDepto = MakeInput("Departamento");
+            txtMail = MakeInput("Correo Electrónico");
+            txtPin = MakeInput("PIN", true);
+
+            /* Rol */
+            lblRol = new Label
+            {
+                Text = "Rol",
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = Color.White,
+                AutoSize = true,
+                Margin = new Padding(0, 18, 0, 6)
+            };
+            cmbRol = new ComboBox
+            {
+                Width = 190,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 11),
+                Items = { "Admin", "User" },
+                SelectedIndex = 1
+            };
+
+            /* Botón PKI */
             btnGenPki = new Button
             {
                 Text = "Generar claves PKI",
-                Width = 130,
-                Height = 28,
-                BackColor = Color.DimGray,
+                Width = 170,
+                Height = 35,
+                BackColor = Color.FromArgb(32, 45, 58),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(6, 0, 0, 0)
             };
             btnGenPki.Click += btnGenPki_Click;
 
-            /* iconos de avance */
-            _icoCert = MakeFolderIcon();
-            _icoPriv = MakeFolderIcon();
-            _icoCfg = MakeFolderIcon();
+            /* Checkboxes e iconos archivos generados */
+            chkCert = MakeCheck("Certificado Público");
+            chkPriv = MakeCheck("Clave Privada Cifrada");
+            chkCfg = MakeCheck("Archivos de Configuración");
 
-            /* botón final */
+            /* Botón Final */
             btnCreate = new Button
             {
                 Text = "Crear Ambiente del USB",
                 Dock = DockStyle.Bottom,
-                Height = 40,
-                BackColor = Color.MediumSpringGreen,
-                FlatStyle = FlatStyle.Flat
+                Height = 48,
+                BackColor = Color.FromArgb(26, 255, 176),
+                Font = new Font("Segoe UI", 16, FontStyle.Bold),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.Black
             };
             btnCreate.Click += btnCreate_Click;
 
-            /* diseño manual simple con TableLayout */
-            var table = new TableLayoutPanel
+            /* TableLayout para ordenar los campos */
+            var tbl = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                RowCount = 9,
-                AutoSize = true
+                ColumnCount = 2,
+                RowCount = 11,
+                AutoSize = true,
+                BackColor = Color.Transparent
             };
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
 
-            AddRow(table, 0, lblNombre, txtNombre);
-            AddRow(table, 1, lblRut, txtRut);
-            AddRow(table, 2, lblDepto, txtDepto);
-            AddRow(table, 3, lblMail, txtMail);
-            /* rol + botón PKI */
-            table.Controls.Add(lblRol, 0, 4);
-            table.Controls.Add(cmbRol, 1, 4);
-            table.Controls.Add(btnGenPki, 2, 4);
-            /* fila de iconos */
-            table.Controls.Add(_icoCert, 0, 5);
-            table.Controls.Add(new Label { Text = "Certificado público", ForeColor = Color.White }, 1, 5);
-            table.Controls.Add(_icoPriv, 0, 6);
-            table.Controls.Add(new Label { Text = "Clave privada cifrada", ForeColor = Color.White }, 1, 6);
-            table.Controls.Add(_icoCfg, 0, 7);
-            table.Controls.Add(new Label { Text = "Archivos de configuración", ForeColor = Color.White }, 1, 7);
+            int row = 0;
+            tbl.Controls.Add(lblMain, 0, row);
+            tbl.SetColumnSpan(lblMain, 2);
 
-            _grpInfo.Controls.Add(table);
+            tbl.Controls.Add(lblSub, 0, ++row);
+            tbl.SetColumnSpan(lblSub, 2);
+
+            tbl.Controls.Add(txtNombre, 0, ++row);
+            tbl.SetColumnSpan(txtNombre, 2);
+
+            tbl.Controls.Add(txtRut, 0, ++row);
+            tbl.SetColumnSpan(txtRut, 2);
+
+            tbl.Controls.Add(txtDepto, 0, ++row);
+            tbl.SetColumnSpan(txtDepto, 2);
+
+            tbl.Controls.Add(txtMail, 0, ++row);
+            tbl.SetColumnSpan(txtMail, 2);
+
+            tbl.Controls.Add(txtPin, 0, ++row);
+            tbl.SetColumnSpan(txtPin, 2);
+
+            tbl.Controls.Add(lblRol, 0, ++row);
+            tbl.Controls.Add(cmbRol, 1, row);
+
+            tbl.Controls.Add(btnGenPki, 1, ++row);
+
+            tbl.Controls.Add(chkCert, 0, ++row);
+            tbl.Controls.Add(chkPriv, 1, row);
+            tbl.Controls.Add(chkCfg, 0, ++row);
+            tbl.SetColumnSpan(chkCfg, 2);
+
+            _grpInfo.Controls.Add(tbl);
             _grpInfo.Controls.Add(btnCreate);
 
-            /* ========== panel derecho (logs) ========== */
-            var grpLogs = new GroupBox
+            /* ========== Panel Derecho: Logs con TextBox ========== */
+            grpLogs = new GroupBox
             {
                 Text = "Logs del Sistema",
-                Dock = DockStyle.Right,
-                Width = 260,
-                ForeColor = Color.White
+                Dock = DockStyle.Fill, // Para que crezca
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 14, FontStyle.Bold)
             };
-            lstLog = new ListBox
+            logsTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(30, 30, 40),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Both,
+                Font = new Font("Consolas", 10),
+                WordWrap = false
             };
-            grpLogs.Controls.Add(lstLog);
+            grpLogs.Controls.Add(logsTextBox);
 
-            /* ========== UserControl root ========== */
-            BackColor = Color.FromArgb(16, 24, 32);
-            Controls.Add(_grpInfo);
-            Controls.Add(grpLogs);
-            Controls.Add(panelLeft);
+            /* ========== Layout Responsivo: TableLayoutPanel ========== */
+            var rootTable = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 1,
+                BackColor = Color.Transparent
+            };
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30)); // USB
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40)); // Central
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30)); // Logs
+
+            rootTable.Controls.Add(panelLeft, 0, 0);
+            rootTable.Controls.Add(_grpInfo, 1, 0);
+            rootTable.Controls.Add(grpLogs, 2, 0);
+
+            Controls.Add(rootTable);
             Size = new Size(1152, 768);
 
             /* deshabilitar formulario hasta detectar USB */
             ToggleForm(false);
-
-            /* helper local */
-            PictureBox MakeFolderIcon() => new PictureBox
-            {
-                Image = Properties.Resources.usb_off,
-                SizeMode = PictureBoxSizeMode.CenterImage,
-                Width = 32,
-                Height = 32,
-                Margin = new Padding(0, 4, 0, 4),
-                BackColor = Color.DimGray
-            };
         }
 
-        private static void AddRow(TableLayoutPanel tbl, int row, Control lbl, Control ctr)
+        /* -------- Helpers para UI -------- */
+        private TextBox MakeInput(string placeholder, bool isPassword = false)
         {
-            tbl.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            tbl.Controls.Add(lbl, 0, row);
-            tbl.Controls.Add(ctr, 1, row);
+            var tb = new TextBox
+            {
+                Width = 320,
+                Font = new Font("Segoe UI", 12),
+                PlaceholderText = placeholder,
+                Margin = new Padding(0, 6, 0, 6)
+            };
+            if (isPassword) tb.PasswordChar = '●';
+            return tb;
+        }
+
+        private CheckBox MakeCheck(string text)
+        {
+            return new CheckBox
+            {
+                Text = text,
+                Font = new Font("Segoe UI", 11),
+                ForeColor = Color.White,
+                Margin = new Padding(0, 6, 0, 6),
+                AutoSize = true,
+                Checked = false,
+                Enabled = false // sólo marcan el avance del proceso
+            };
         }
         #endregion
 
+        /* ------ Controles del formulario ------ */
         private System.ComponentModel.IContainer components = null!;
         private Panel panelLeft;
+        private Label lblUsbSection;
         private PictureBox picUsb;
         private Button btnDetect;
         private Label _lblUsbName;
         private Label _lblUsbSize;
 
         private GroupBox _grpInfo;
+        private Label lblMain;
+        private Label lblSub;
         private TextBox txtNombre;
         private TextBox txtRut;
         private TextBox txtDepto;
         private TextBox txtMail;
+        private TextBox txtPin;
+        private Label lblRol;
         private ComboBox cmbRol;
         private Button btnGenPki;
-        private PictureBox _icoCert;
-        private PictureBox _icoPriv;
-        private PictureBox _icoCfg;
         private Button btnCreate;
+        private CheckBox chkCert, chkPriv, chkCfg;
 
-        private ListBox lstLog;
+        private GroupBox grpLogs;
+        private TextBox logsTextBox;
     }
 }
-
-/*
-
-namespace RUSBP_Admin.Forms.Vistas
-{
-    partial class UsbAssignmentView
-    {
-        /// <summary> 
-        /// Variable del diseñador necesaria.
-        /// </summary>
-        private System.ComponentModel.IContainer components = null;
-
-        /// <summary> 
-        /// Limpiar los recursos que se estén usando.
-        /// </summary>
-        /// <param name="disposing">true si los recursos administrados se deben desechar; false en caso contrario.</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #region Código generado por el Diseñador de componentes
-
-        /// <summary> 
-        /// Método necesario para admitir el Diseñador. No se puede modificar
-        /// el contenido de este método con el editor de código.
-        /// </summary>
-        private void InitializeComponent()
-        {
-            SuspendLayout();
-            // 
-            // UsbAssignmentView
-            // 
-            AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            Name = "UsbAssignmentView";
-            Size = new Size(460, 429);
-            ResumeLayout(false);
-        }
-
-        #endregion
-    }
-}
-
-
-*/

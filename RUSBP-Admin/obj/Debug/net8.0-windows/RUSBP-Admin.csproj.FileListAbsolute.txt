@@ -46,3 +46,5 @@ C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\System.Text.Json.dll
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\runtimes\browser\lib\net8.0\System.Text.Encodings.Web.dll
 C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\appsettings.json
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\DevOne.Security.Cryptography.BCrypt.dll
+C:\Users\RUSBP\Desktop\Recon-USB-Pass\RUSBP-FrontEnd\RUSBP-Admin\bin\Debug\net8.0-windows\BCrypt.Net-Next.dll

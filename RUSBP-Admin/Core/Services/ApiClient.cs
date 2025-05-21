@@ -58,6 +58,23 @@ namespace RUSBP_Admin.Core.Services
             return res ?? new();
         }
 
+        public async Task<T> PostAsync<T>(string url, object body)
+        {
+            var json = JsonSerializer.Serialize(body);
+            var resp = await _http.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+            resp.EnsureSuccessStatusCode();
+            var result = await resp.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<T>(result)!;
+        }
+        public async Task PostAsync(string url, object body)
+        {
+            var json = JsonSerializer.Serialize(body);
+            var resp = await _http.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+            resp.EnsureSuccessStatusCode();
+        }
+
+
+
         /* ══════════════════════════════════
            SECTION B · Funciones agente EMPLEADO (USB/PKI)
            ══════════════════════════════════ */
