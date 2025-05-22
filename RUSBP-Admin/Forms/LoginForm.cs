@@ -419,57 +419,6 @@ namespace RUSBP_Admin
             public void Dispose() => _watcher.Dispose();
         }
 
-        /* ───────────── Extras para LogOut ───────────── *//*
-        private void CambiarAModoLogoutUI(string mac)
-        {
-            // Oculta controles innecesarios y muestra solo Logout
-            _txtPin.Visible = false;
-            _btnLogin.Visible = false;
-            _lblStatus.Text = $"Sesión iniciada. USB conectado ({mac})";
-            _lblStatus.ForeColor = Color.LimeGreen;
-            _picUsbOn.Visible = true;
-            _picUsbOff.Visible = false;
-
-            // Botón de logout si no existe
-            if (_btnLogout == null)
-            {
-                _btnLogout = new Button
-                {
-                    Text = "Cerrar sesión",
-                    Width = 240,
-                    Height = 45,
-                    FlatStyle = FlatStyle.Flat,
-                    ForeColor = Color.White,
-                    BackColor = ColorTranslator.FromHtml("#6b0000"),
-                    Font = new Font(Font.FontFamily, 14, FontStyle.Bold),
-                    Location = new Point(_btnLogin.Left, _btnLogin.Bottom + 15)
-                };
-                _btnLogout.Click += (_, __) => RealizarLogout();
-                Controls.Add(_btnLogout);
-            }
-            _btnLogout.Visible = true;
-
-            // --- Tray Icon
-            if (_trayIcon == null)
-            {
-                _trayIcon = new NotifyIcon
-                {
-                    Icon = SystemIcons.Shield, // Puedes cambiar el ícono
-                    Visible = true,
-                    Text = "RUSBP - Sesión activa"
-                };
-                var menu = new ContextMenuStrip();
-                menu.Items.Add("Cerrar sesión", null, (_, __) => Invoke(RealizarLogout));
-                menu.Items.Add("Salir (forzado)", null, (_, __) => Application.Exit());
-                _trayIcon.ContextMenuStrip = menu;
-                _trayIcon.DoubleClick += (_, __) => MostrarVentana();
-            }
-
-            // Oculta la ventana, pero deja el icono activo
-            Hide();
-            ShowInTaskbar = false;
-        }*/ //Elimina todo el bloque CambiarAModoLogoutUI, _trayIcon, _btnLogout y referencias.
-
         // Muestra ventana desde tray icon
         private void MostrarVentana()
         {
