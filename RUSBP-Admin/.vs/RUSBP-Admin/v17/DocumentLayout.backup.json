@@ -1,7 +1,24 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\forms\\vistas\\usbassignmentview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:forms\\vistas\\usbassignmentview.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\core\\models\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:core\\models\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|c:\\users\\rusbp\\desktop\\recon-usb-pass\\rusbp-frontend\\rusbp-admin\\core\\services\\apiclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A90E7EE5-9577-40D4-AA51-5EFCC21E08B8}|RUSBP-Admin.csproj|solutionrelative:core\\services\\apiclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,11 +26,63 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Dtos.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Core\\Models\\Dtos.cs",
+              "RelativeDocumentMoniker": "Core\\Models\\Dtos.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Core\\Models\\Dtos.cs",
+              "RelativeToolTip": "Core\\Models\\Dtos.cs",
+              "ViewState": "AgIAACEAAAAAAAAAAAAuwC4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-22T05:28:59.632Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "ApiClient.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Core\\Services\\ApiClient.cs",
+              "RelativeDocumentMoniker": "Core\\Services\\ApiClient.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Core\\Services\\ApiClient.cs",
+              "RelativeToolTip": "Core\\Services\\ApiClient.cs",
+              "ViewState": "AgIAADIAAAAAAAAAAAAywDsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-22T03:38:03.003Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "UsbAssignmentView.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.cs",
+              "RelativeDocumentMoniker": "Forms\\Vistas\\UsbAssignmentView.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\Forms\\Vistas\\UsbAssignmentView.cs",
+              "RelativeToolTip": "Forms\\Vistas\\UsbAssignmentView.cs",
+              "ViewState": "AgIAABMBAAAAAAAAAAAMwCIBAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-22T01:45:41.228Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\appsettings.json",
+              "RelativeDocumentMoniker": "appsettings.json",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\appsettings.json",
+              "RelativeToolTip": "appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-05-22T00:58:34.495Z",
+              "EditorCaption": ""
             }
           ]
         }

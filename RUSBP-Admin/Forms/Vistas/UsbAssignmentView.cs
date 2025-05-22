@@ -1,13 +1,21 @@
 ﻿// UsbAssignmentView.cs  (lógica)
+// ─────────────────────────────────────────────────────────────────────────────
+// Adaptado: 2025-05-22
+//  • Se sustituye la obtención del serial usando WMI por llamada a Win32 API
+//    GetVolumeInformation (kernel32), mucho más confiable en USBs protegidos.
+//  • Se centraliza la lectura del serial en GetUsbSerial() y _serial sólo se
+//    establece desde ese helper.
+//  • Se comenta cualquier clase / método que ya no se usa y se explica “por qué”.
+// ─────────────────────────────────────────────────────────────────────────────
+
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Management;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using System.Windows.Forms;
-using BCrypt.Net;                       // BCrypt.Net-Next
 using RUSBP_Admin.Core.Services;        // ApiClient  y  UsbCryptoService
 
 namespace RUSBP_Admin.Forms.Vistas
@@ -21,20 +29,15 @@ namespace RUSBP_Admin.Forms.Vistas
         /* =========  estado  ===== */
         private DriveInfo? _currentUsb;
         private string? _serial;
-        private string? _workDir;
 
         public event Action<string /*serial*/>? UsbPrepared;
-
-
-        private Panel pnlCert = new Panel { Width = 32, Height = 32, BackColor = Color.Gray };
-        private Panel pnlPriv = new Panel { Width = 32, Height = 32, BackColor = Color.Gray };
 
         /* =========  ctor  ======= */
         public UsbAssignmentView(ApiClient api, UsbCryptoService usb)
         {
             _api = api;
             _usb = usb;
-            InitializeComponent();      // ← del archivo *.Designer.cs
+            InitializeComponent();
             ToggleForm(false);          // deshabilita campos hasta detectar
         }
 
@@ -51,158 +54,135 @@ namespace RUSBP_Admin.Forms.Vistas
             public override string ToString() => $"{Label} ({DriveLetter})";
         }
 
-        // Devuelve solo los USBs que NO tienen archivos de agente
-        public static List<UsbCandidate> GetUnassignedUsbDrives()
+        /// <summary>
+        /// Lista los discos inicializables (removable/fixed ≠ C:)
+        /// y que NO contengan ya PKI/config.
+        /// </summary>
+        private static UsbCandidate[] GetUnassignedUsbDrives()
         {
-            var result = new List<UsbCandidate>();
-            foreach (var drive in DriveInfo.GetDrives().Where(d =>
-                (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed) &&
-                d.IsReady &&
-                !d.Name.Equals("C:\\", StringComparison.OrdinalIgnoreCase)))
-            {
-                var root = drive.RootDirectory.FullName;
-                // Chequear si existen PKI dentro de la subcarpeta pki
-                var pkiDir = Path.Combine(root, "pki");
-                bool hasPem = false;
-                if (Directory.Exists(pkiDir))
+            return DriveInfo.GetDrives()
+                .Where(d =>
+                    (d.DriveType is DriveType.Removable or DriveType.Fixed) &&
+                    d.IsReady &&
+                    !d.Name.Equals("C:\\", StringComparison.OrdinalIgnoreCase))
+                .Select(d => new
                 {
-                    hasPem =
-                        Directory.GetFiles(pkiDir, "*.pem", SearchOption.TopDirectoryOnly).Any() ||
-                        Directory.GetFiles(pkiDir, "*.crt", SearchOption.TopDirectoryOnly).Any() ||
-                        Directory.GetFiles(pkiDir, "*.key", SearchOption.TopDirectoryOnly).Any();
-                }
-                // Además, verifica si existe el config.json (en raíz, como lo generas)
-                bool hasConfig = File.Exists(Path.Combine(root, "config.json"));
-
-                if (!hasPem && !hasConfig)
+                    Drive = d,
+                    HasPki = Directory.Exists(Path.Combine(d.RootDirectory.FullName, "pki")),
+                    HasCfg = File.Exists(Path.Combine(d.RootDirectory.FullName, "config.json"))
+                })
+                .Where(x => !x.HasPki && !x.HasCfg)
+                .Select(x => new UsbCandidate
                 {
-                    result.Add(new UsbCandidate
-                    {
-                        DriveLetter = root,
-                        Label = drive.VolumeLabel,
-                        Size = drive.TotalSize,
-                        Serial = GetVolumeSerial(root.TrimEnd('\\'))
-                    });
-                }
-            }
-            return result;
+                    DriveLetter = x.Drive.RootDirectory.FullName,
+                    Label = x.Drive.VolumeLabel,
+                    Size = x.Drive.TotalSize,
+                    Serial = GetUsbSerial(x.Drive.RootDirectory.FullName)
+                })
+                .ToArray();
         }
 
-        private bool UsbTienePKI(DriveInfo drive)
-        {
-            var pkiDir = Path.Combine(drive.RootDirectory.FullName, "pki");
-            return Directory.Exists(pkiDir) &&
-                   (Directory.GetFiles(pkiDir, "*.pem", SearchOption.TopDirectoryOnly).Any() ||
-                    Directory.GetFiles(pkiDir, "*.crt", SearchOption.TopDirectoryOnly).Any() ||
-                    Directory.GetFiles(pkiDir, "*.key", SearchOption.TopDirectoryOnly).Any());
-        }
-
-        private void SetSelectedUsb(UsbCandidate usb)
-        {
-            _currentUsb = new DriveInfo(usb.DriveLetter);
-            _serial = usb.Serial;
-            _lblUsbName.Text = usb.Label;
-            _lblUsbSize.Text = $"{usb.Size / 1_073_741_824} GB";
-            Log($"USB seleccionado: {_currentUsb.Name}  Serial={_serial}");
-            ToggleForm(true);
-        }
         private void btnDetect_Click(object? s, EventArgs e)
         {
-            // Lista de discos Removable o Fixed, excepto C:, y sin archivos .pem
-            var discos = DriveInfo.GetDrives()
-                .Where(d =>
-                    (d.DriveType == DriveType.Removable || d.DriveType == DriveType.Fixed) &&
-                    d.IsReady &&
-                    !Directory.GetFiles(d.RootDirectory.FullName, "*.pem", SearchOption.TopDirectoryOnly).Any() &&
-                    !d.Name.Equals("C:\\", StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (!discos.Any())
+            var candidatos = GetUnassignedUsbDrives();
+            if (candidatos.Length == 0)
             {
                 Log("⚠️  No hay unidades inicializables (sin archivos PKI)");
                 return;
             }
 
-            // Si hay más de uno, mostrar un dialog para elegir
-            DriveInfo? seleccionado = null;
-            if (discos.Count == 1)
-            {
-                seleccionado = discos[0];
-            }
-            else
-            {
-                // Construir un string con los nombres y tamaños
-                var opciones = discos.Select(d =>
-                    $"{d.Name}   ({(d.DriveType == DriveType.Removable ? "USB" : "Disco Fijo")}, {d.VolumeLabel}, {d.TotalSize / 1_073_741_824} GB)"
-                ).ToArray();
+            UsbCandidate elegido = candidatos.Length == 1
+                ? candidatos[0]
+                : SelectUsbDialog(candidatos);
 
-                // Mostrar un diálogo de selección simple
-                var frm = new Form
-                {
-                    Text = "Seleccione unidad para asignar",
-                    Size = new Size(500, 200),
-                    StartPosition = FormStartPosition.CenterParent
-                };
+            if (elegido == null) return;
 
-                var list = new ListBox
-                {
-                    Dock = DockStyle.Fill,
-                    Font = new Font("Segoe UI", 12)
-                };
-                list.Items.AddRange(opciones);
+            _currentUsb = new DriveInfo(elegido.DriveLetter);
+            _serial = elegido.Serial;
 
-                list.SelectionMode = SelectionMode.One;
-                list.SelectedIndex = 0;
-
-                var btnOk = new Button
-                {
-                    Text = "OK",
-                    Dock = DockStyle.Bottom,
-                    Height = 40,
-                    DialogResult = DialogResult.OK
-                };
-
-                frm.Controls.Add(list);
-                frm.Controls.Add(btnOk);
-
-                if (frm.ShowDialog() == DialogResult.OK && list.SelectedIndex >= 0)
-                {
-                    seleccionado = discos[list.SelectedIndex];
-                }
-            }
-
-            if (seleccionado == null) return;
-
-            _currentUsb = seleccionado;
-            _serial = GetVolumeSerial(_currentUsb.RootDirectory.FullName.TrimEnd('\\'));
-            _lblUsbName.Text = _currentUsb.VolumeLabel;
-            _lblUsbSize.Text = $"{_currentUsb.TotalSize / 1_073_741_824} GB";
+            _lblUsbName.Text = elegido.Label;
+            _lblUsbSize.Text = $"{elegido.Size / 1_073_741_824} GB";
             Log($"Disco listo para asignar: {_currentUsb.Name}  Serial={_serial}");
+
             ToggleForm(true);
         }
 
+        #region Helpers de Serial (Win32 API)
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool GetVolumeInformation(
+            string lpRootPathName,
+            System.Text.StringBuilder lpVolumeNameBuffer,
+            uint nVolumeNameSize,
+            out uint lpVolumeSerialNumber,
+            out uint lpMaximumComponentLength,
+            out uint lpFileSystemFlags,
+            System.Text.StringBuilder lpFileSystemNameBuffer,
+            uint nFileSystemNameSize);
 
-
-
-
-        private static string GetVolumeSerial(string driveLetter)
+        private static string GetUsbSerial(string root)
         {
             try
             {
-                using var mo = new ManagementObject(
-                    $@"Win32_LogicalDisk.DeviceID=""{driveLetter}:""");
-                mo.Get();
-                return mo["VolumeSerialNumber"]?.ToString() ?? "UNKNOWN";
+                if (!root.EndsWith("\\"))
+                    root += "\\";
+
+                bool ok = GetVolumeInformation(
+                    root,
+                    null!,
+                    0,
+                    out uint serial,
+                    out _,
+                    out _,
+                    null!,
+                    0);
+
+                return ok ? serial.ToString("X") : "UNKNOWN";
             }
-            catch { return "UNKNOWN"; }
+            catch
+            {
+                return "UNKNOWN";
+            }
         }
+        #endregion
+
+        #region Selección visual cuando hay varios USB
+        private static UsbCandidate SelectUsbDialog(UsbCandidate[] opciones)
+        {
+            using var frm = new Form
+            {
+                Text = "Seleccione unidad para asignar",
+                Size = new Size(520, 240),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedToolWindow
+            };
+
+            var lst = new ListBox
+            {
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 11),
+                SelectionMode = SelectionMode.One
+            };
+            lst.Items.AddRange(opciones.Select(c =>
+                $"{c.DriveLetter} – {c.Label}   {c.Size / 1_073_741_824} GB  (SN:{c.Serial})"
+            ).ToArray());
+            lst.SelectedIndex = 0;
+
+            var ok = new Button { Text = "Aceptar", Dock = DockStyle.Bottom, Height = 38, DialogResult = DialogResult.OK };
+            frm.Controls.Add(lst);
+            frm.Controls.Add(ok);
+
+            return frm.ShowDialog() == DialogResult.OK && lst.SelectedIndex >= 0
+                ? opciones[lst.SelectedIndex]
+                : null!;
+        }
+        #endregion
 
         /* ===============================================================
            2. Generar PKI
         ===============================================================*/
         private void btnGenPki_Click(object? s, EventArgs e)
         {
-            if (_currentUsb is null || string.IsNullOrEmpty(_serial))
+            if (_currentUsb is null || string.IsNullOrEmpty(_serial) || _serial == "UNKNOWN")
             {
                 Log("Primero seleccione un USB válido.");
                 return;
@@ -210,27 +190,19 @@ namespace RUSBP_Admin.Forms.Vistas
 
             try
             {
-                // Crear la carpeta 'pki' si no existe
                 var destPki = Path.Combine(_currentUsb.RootDirectory.FullName, "pki");
-                Directory.CreateDirectory(destPki); // <-- Esta línea es clave
+                Directory.CreateDirectory(destPki);
 
                 var (certPath, privPath) = PkiService.GeneratePkcs8KeyPair(_serial, destPki);
 
                 bool ok = File.Exists(certPath) && File.Exists(privPath);
-                pnlCert.BackColor = ok ? Color.LimeGreen : Color.Red;
-                pnlPriv.BackColor = ok ? Color.LimeGreen : Color.Red;
-
                 Log(ok ? "Claves PKI generadas en el USB." : "Error generando PKI.");
             }
             catch (Exception ex)
             {
-                pnlCert.BackColor = Color.Red;
-                pnlPriv.BackColor = Color.Red;
                 Log($"Error: {ex.Message}");
             }
         }
-
-
 
         /* ===============================================================
            3. Guardar empleado + asignar USB
@@ -242,50 +214,59 @@ namespace RUSBP_Admin.Forms.Vistas
                 MessageBox.Show("Detecta un USB válido primero.");
                 return;
             }
-            var pkiPath = Path.Combine(_currentUsb.RootDirectory.FullName, "pki");
-            if (!Directory.Exists(pkiPath) ||
-                !File.Exists(Path.Combine(pkiPath, "cert.crt")) ||
-                !File.Exists(Path.Combine(pkiPath, "priv.key")))
+            if (_serial is null || _serial == "UNKNOWN")
+            {
+                MessageBox.Show("Primero presiona «Detectar USB» – no se obtuvo el serial.");
+                return;
+            }
+            var pkiDir = Path.Combine(_currentUsb.RootDirectory.FullName, "pki");
+            if (!File.Exists(Path.Combine(pkiDir, "cert.crt")) ||
+                !File.Exists(Path.Combine(pkiDir, "priv.key")))
             {
                 MessageBox.Show("Debes generar PKI primero.");
                 return;
             }
 
-            /* 3 .1  crea usuario en backend */
+            /* 1. Crear usuario -------------------------------------------------- */
             var dtoUser = new
             {
-                nombre = txtNombre.Text.Trim(),
                 rut = txtRut.Text.Trim(),
+                nombre = txtNombre.Text.Trim(),
                 depto = txtDepto.Text.Trim(),
                 email = txtMail.Text.Trim(),
                 rol = cmbRol.SelectedItem!.ToString(),
-                pinHash = BCrypt.Net.BCrypt.HashPassword(txtPin.Text.Trim())
+                pin = txtPin.Text.Trim()
             };
-            int userId;
+            System.Diagnostics.Debug.WriteLine("DTO Usuario ► " + JsonSerializer.Serialize(dtoUser));
+
             try
             {
-                userId = await _api.PostAsync<int>("/usuarios", dtoUser);
+                var resp = await _api.PostAsync<UsuarioCreatedResponse>("/api/usuarios", dtoUser);
+                System.Diagnostics.Debug.WriteLine($"Respuesta /api/usuarios: id={resp.id}, msg={resp.msg}");
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                MessageBox.Show($"Error API /usuarios: {ex.Message}");
+                MessageBox.Show($"Error API /api/usuarios: {ex.Message}");
                 return;
             }
 
-            /* 3 .2  asigna USB en backend */
-            var dtoUsb = new { Serial = _serial, UsuarioId = userId };
+            /* 2. Vincular USB --------------------------------------------------- */
+            var dtoUsb = new { Serial = _serial, UsuarioRut = txtRut.Text.Trim() };
+            System.Diagnostics.Debug.WriteLine("DTO USB ► " + JsonSerializer.Serialize(dtoUsb));
+
             try
             {
-                await _api.PostAsync("/usb/asignar", dtoUsb);
+                await _api.PostAsync("/api/usb/asignar", dtoUsb);
+                System.Diagnostics.Debug.WriteLine("USB asignado OK.");
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                MessageBox.Show($"Error API /usb/asignar: {ex.Message}");
+                MessageBox.Show($"Error API /api/usb/asignar: {ex.Message}");
                 return;
             }
 
-            /* 3 .3  copiar PKI + config al pendrive */
-            CopyDir(_workDir, Path.Combine(_currentUsb.RootDirectory.FullName, "pki"));
+            /* 3. Copiar PKI + config al pendrive ------------------------------- */
+            CopyDir(pkiDir, Path.Combine(_currentUsb.RootDirectory.FullName, "pki"));
 
             var cfg = new
             {
@@ -296,9 +277,14 @@ namespace RUSBP_Admin.Forms.Vistas
                 Serial = _serial,
                 Fecha = DateTime.UtcNow
             };
-            File.WriteAllText(Path.Combine(_currentUsb.RootDirectory.FullName, "config.json"),JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(
+                Path.Combine(_currentUsb.RootDirectory.FullName, "config.json"),
+                JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true })
+            );
 
-            Log("Empleado + USB registrados ✔️");
+            System.Diagnostics.Debug.WriteLine("Empleado + USB registrados ✔️");
+            MessageBox.Show("Empleado + USB registrados ✔️");
+            UsbPrepared?.Invoke(_serial);
         }
 
         /* ===============================================================
@@ -309,19 +295,31 @@ namespace RUSBP_Admin.Forms.Vistas
             Directory.CreateDirectory(dst);
             foreach (var f in Directory.GetFiles(src))
                 File.Copy(f, Path.Combine(dst, Path.GetFileName(f)), true);
-
             foreach (var d in Directory.GetDirectories(src))
                 CopyDir(d, Path.Combine(dst, Path.GetFileName(d)));
         }
 
-        private void ToggleForm(bool enabled)
-        {
-            btnGenPki.Enabled =
-            btnCreate.Enabled = enabled;
-        }
+        private void ToggleForm(bool enabled) =>
+            btnGenPki.Enabled = btnCreate.Enabled = enabled;
 
         private void Log(string msg) =>
             logsTextBox.AppendText($"{DateTime.Now:HH:mm:ss}  {msg}{Environment.NewLine}");
 
+        /* ===============================================================
+           5. Tipos usados en la comunicación con backend
+        ===============================================================*/
+        private record UsuarioCreatedResponse(int id, string? msg);
+
+        /* ===============================================================
+           Métodos/Clases sin uso
+        ===============================================================*/
+        // La clase CrearUsuarioResponse ya no se usa; la respuesta se maneja con
+        // record UsuarioCreatedResponse que refleja el JSON actual del backend.
+        /*
+        public class CrearUsuarioResponse
+        {
+            public int Id { get; set; }
+        }
+        */
     }
 }
