@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "rusbp-bootstrap", "rusbp-bootstrap.csproj", "{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7C66A4C4-71E6-4477-9505-CB3D32A09D35}
+	EndGlobalSection
+EndGlobal
