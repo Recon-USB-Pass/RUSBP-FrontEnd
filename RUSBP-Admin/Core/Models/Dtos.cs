@@ -18,6 +18,11 @@ namespace RUSBP_Admin.Core.Models.Dtos
         public int Id { get; set; }
         public string Rut { get; set; } = "";
         public string Nombre { get; set; } = "";
+        public string? Ip { get; set; }
+        public string? Mac { get; set; }
+        public string? Depto { get; set; }
+        public string? Email { get; set; }
+        public string? Rol { get; set; }
         public string PinHash { get; set; } = "";      // Nunca se muestra
         public List<DispositivoUsbDto> Usbs { get; set; } = [];
     }

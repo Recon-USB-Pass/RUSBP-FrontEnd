@@ -331,6 +331,8 @@ namespace RUSBP_Admin
         // Campo nuevo a nivel de clase (déjalo arriba, fuera del método):
         // private bool _authSuccess = false;
 
+
+
         private async Task OnLoginAsync()
         {
             if (_serial is null || _challenge is null) return;
@@ -344,15 +346,28 @@ namespace RUSBP_Admin
                                              .FirstOrDefault(i => i.OperationalStatus == OperationalStatus.Up)?
                                              .GetPhysicalAddress().ToString() ?? "";
 
-                string userRut = ObtenerRutEmpleado();   // obtén el RUT según tu lógica
+                var (usuario, err) = await _api.LoginUsbAsync(_serial, sig, _txtPin.Text.Trim(), mac);
 
-                var (ok, err) = await _api.LoginUsbAsync(_serial, sig, _txtPin.Text.Trim(), mac);
-                if (ok)
+                if (usuario != null)
                 {
-                    /* 1. Registrar evento */
+                    // ⚡️ AQUÍ VALIDAS EL ROL PARA AGENTE ADMIN
+                    if (usuario.Rol == null || !usuario.Rol.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        MessageBox.Show("Acceso denegado: solo usuarios administradores pueden acceder a esta consola.",
+                                        "Acceso denegado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        _btnLogin.Enabled = true;
+                        _txtPin.Clear();
+                        _txtPin.Focus();
+                        return;
+                    }
+
+                    // REGISTRA el RUT global para logs, si lo usas
+                    _userRut = usuario.Rut;
+
+                    // 1. Registrar evento
                     _logManager?.AddEvent(new LogEvent
                     {
-                        UserRut = userRut,
+                        UserRut = _userRut ?? "(desconocido)",
                         UsbSerial = _serial,
                         EventType = "conexión",
                         Ip = ObtenerIpLocal(),
@@ -360,22 +375,22 @@ namespace RUSBP_Admin
                         Timestamp = DateTime.UtcNow
                     });
 
-                    /* 2. Sincronizar logs pendientes */
+                    // 2. Sincronizar logs pendientes
                     if (_logSync != null)
                         await _logSync.SyncUsbAsync(_serial);
 
-                    /* 3. Salida exitosa */
+                    // 3. Salida exitosa
                     CursorGuard.Release();
                     KeyboardHook.Uninstall();
 
-                    _authSuccess = true;            // <─ evita bloqueo en OnFormClosing
-                    _watcher.Dispose();                // ← ① DETIENE eventos después de cerrar
+                    _authSuccess = true;
+                    _watcher.Dispose();
                     DialogResult = DialogResult.OK;
-                    Close();                          // cierra LoginForm y vuelve a Program.cs
+                    Close();
                     return;
                 }
 
-                /* --- Errores de challenge o backend --- */
+                // --- Errores de challenge o backend ---
                 if (err?.Contains("Challenge vencido") == true)
                 {
                     MessageBox.Show("Challenge vencido. Reintentando...");
@@ -384,7 +399,7 @@ namespace RUSBP_Admin
                 {
                     MessageBox.Show(err ?? "Error desconocido");
                 }
-                await BeginVerificationAsync();       // re-verifica/rehace el reto
+                await BeginVerificationAsync(); // re-verifica/rehace el reto
             }
             catch (Exception ex)
             {
@@ -406,7 +421,6 @@ namespace RUSBP_Admin
                 _txtPin.Focus();
             }
         }
-
 
 
         /// <summary>Supervisa la presencia física del USB administrador.</summary>
