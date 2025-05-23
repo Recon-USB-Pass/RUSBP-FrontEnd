@@ -261,29 +261,45 @@ namespace RUSBP_Admin
 
         private async Task BeginVerificationAsync()
         {
-            // localizar PEM otra vez por si cambió la letra
+            // 1) volver a localizar el USB (por si cambió la letra)
             if (!_usb.TryLocateUsb())
             {
                 _watcher.SetVerified(false);
                 return;
             }
 
-            _serial = _usb.Serial;
-            string certPem = _usb.LoadCertPem();
+            _serial = _usb.Serial;                     // viene en MAYÚSCULAS
+            string certPem = _usb.LoadCertPem();       // lee ...\pki\cert.crt  (PEM)
 
-            _challenge = await _api.VerifyUsbAsync(_serial!, certPem);
-            if (_challenge == null)
+            /* -------- 2) llamar al backend -------- */
+            _lblStatus.Text = "Verificando…";
+            _lblStatus.ForeColor = Color.DeepSkyBlue;
+
+            try
             {
-                // No conexión o verificación fallida: programa reintento
-                _lblStatus.Text = "Sin conexión al servidor. Reintentando...";
+                _challenge = await _api.VerifyUsbAsync(_serial!, certPem);
+            }
+            catch (HttpRequestException)
+            {
+                _challenge = null;                     // forzamos re-intento más abajo
+            }
+
+            /* -------- 3) procesar resultado -------- */
+            if (string.IsNullOrEmpty(_challenge))
+            {
+                _lblStatus.Text = "Sin conexión al servidor. Reintentando…";
                 _lblStatus.ForeColor = Color.OrangeRed;
                 ProgramarReintentoVerificacion();
+                _watcher.SetVerified(false);
                 return;
             }
 
+            _lblStatus.Text = "USB verificado";
+            _lblStatus.ForeColor = Color.LimeGreen;
             _watcher.SetVerified(true);
             DetenerReintentoVerificacion();
         }
+
 
         /* ───────────── Reintento de Varificacion con el Servidor ───────────── */
 
@@ -330,7 +346,7 @@ namespace RUSBP_Admin
 
                 string userRut = ObtenerRutEmpleado();   // obtén el RUT según tu lógica
 
-                var (ok, err) = await _api.LoginAsync(_serial, sig, _txtPin.Text.Trim(), mac);
+                var (ok, err) = await _api.LoginUsbAsync(_serial, sig, _txtPin.Text.Trim(), mac);
                 if (ok)
                 {
                     /* 1. Registrar evento */

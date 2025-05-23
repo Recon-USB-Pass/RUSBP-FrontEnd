@@ -18,17 +18,26 @@ namespace RUSBP_Admin.Core.Services
         {
             Directory.CreateDirectory(destDir);
 
-            var certPath = Path.Combine(destDir, "cert.crt");
-            var privPath = Path.Combine(destDir, "priv.key");
+            string certPath = Path.Combine(destDir, "cert.crt");
+            string privPath = Path.Combine(destDir, "priv.key");
 
             using var rsa = RSA.Create(2048);
-            var csr = new CertificateRequest($"CN={serial}", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            var req = new CertificateRequest(
+                new X500DistinguishedName($"CN={serial}"),
+                rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-            var cert = csr.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(2));
-            File.WriteAllBytes(certPath, cert.Export(X509ContentType.Cert));
-            File.WriteAllBytes(privPath, rsa.ExportPkcs8PrivateKey());
+            using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(5));
+
+            // --- GUARDA EL CERTIFICADO EN FORMATO PEM ---
+            File.WriteAllText(certPath, new string(PemEncoding.Write("CERTIFICATE", cert.RawData)));
+
+            // --- GUARDA LA CLAVE PRIVADA EN FORMATO PEM PKCS#8 ---
+            File.WriteAllText(privPath, new string(PemEncoding.Write("PRIVATE KEY", rsa.ExportPkcs8PrivateKey())));
 
             return (certPath, privPath);
         }
+
+
+
     }
 }

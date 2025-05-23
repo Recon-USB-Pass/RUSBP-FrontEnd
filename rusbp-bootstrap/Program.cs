@@ -1,4 +1,17 @@
-﻿// Program.cs – rusbp-bootstrap   (v2 – POST /api/usb antes de asignar)
+﻿// Program.cs – rusbp-bootstrap  (v3 – datos por consola + ayudas)
+// -----------------------------------------------------------------------------
+// 1) Detecta el primer pendrive disponible
+// 2) Pregunta los datos del “Root-Admin” (con sugerencias)
+// 3) Da de alta el USB (POST /api/usb)
+// 4) Crea el usuario (POST /api/usuarios)
+// 5) Asigna USB ⇄ Usuario   (POST /api/usb/asignar)
+// 6) Genera PKI   (cert.crt / priv.key)
+// 7) Graba config.json
+//
+// Compilar :  dotnet build -c Release
+// Ejecutar  :  rusbp-bootstrap.exe
+// -----------------------------------------------------------------------------
+
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -12,116 +25,123 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 
-// ───────────────────── CONFIG ─────────────────────
-const string apiBase = "https://192.168.1.209:8443";     // ← URL del backend
-const string adminRut = "11.111.111-1";
-const string adminPin = "1234";
-const string adminEmail = "admin@empresa.cl";
-// ──────────────────────────────────────────────────
+// ─────────────  CONFIG  ─────────────
+const string apiBase = "https://192.168.1.209:8443";   // ← URL/IP del backend
+// ────────────────────────────────────
 
 Debug.WriteLine($"▲ bootstrap iniciado  –  API base: {apiBase}");
-Console.WriteLine("Inserta el pendrive destino y pulsa <Enter> …");
+
+// --------------------------------------------------------------------
+// 0) Datos del usuario root-admin
+// --------------------------------------------------------------------
+string Ask(string label, string hint, string def)
+{
+    Console.ForegroundColor = ConsoleColor.Cyan;
+    Console.Write($"{label} ");
+    Console.ResetColor();
+    Console.Write($"[{hint}]  (Enter = \"{def}\"): ");
+    string? v = Console.ReadLine();
+    return string.IsNullOrWhiteSpace(v) ? def : v.Trim();
+}
+
+string rut = Ask("RUT         :", "idealmente Jefe de TI", "11.111.111-1");
+string nombre = Ask("Nombre      :", "nombre de la empresa", "admin");
+string depto = Ask("Departamento:", "root / TI", "TI");
+string email = Ask("Email       :", "correo corporativo", "admin@empresa.cl");
+string pin = Ask("PIN         :", "un número inolvidable", "1234");
+// Rol no se pregunta – siempre “Admin”
+
+Console.WriteLine("\nInserta el pendrive destino y pulsa <Enter> …");
 Console.ReadLine();
 
-// ──────────────────────────────────────────────────
-// 1) Detectar pendrive y serial real (USB SerialNumber)
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 1) Pendrive y serial
+// --------------------------------------------------------------------
 var drive = DriveInfo.GetDrives()
                      .FirstOrDefault(d => d.DriveType == DriveType.Removable && d.IsReady);
 
 if (drive is null)
 {
-    Debug.WriteLine("✖  No se encontró ningún pendrive.");
-    Console.WriteLine("No hay unidades extraíbles disponibles.");
+    Console.WriteLine("✖  No se encontró ningún pendrive.");
     return;
 }
 
 Debug.WriteLine($"► Seleccionado: {drive.Name}  {drive.TotalSize / 1_073_741_824} GB");
 
-// SerialNumber Win32_DiskDrive
-string? serial = UsbHelper.GetUsbSerial(drive.Name.TrimEnd('\\'));
+string serial = UsbHelper.GetUsbSerial(drive.Name.TrimEnd('\\'));
 Debug.WriteLine($"Serial obtenido: {serial}");
-if (string.IsNullOrWhiteSpace(serial))
+if (serial is "UNKNOWN" or "")
 {
-    Debug.WriteLine("✖  Serial USB desconocido; abortando.");
+    Console.WriteLine("✖  Serial USB desconocido; abortando.");
     return;
 }
 
-// ──────────────────────────────────────────────────
-// 2) HttpClient que ignora TLS SOLO para esa IP
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 2) HttpClient (omitir TLS sólo para la IP del backend)
+// --------------------------------------------------------------------
 var handler = new HttpClientHandler
 {
     ServerCertificateCustomValidationCallback = (req, cert, chain, errs) =>
-    {
-        bool ok = req.RequestUri!.Host == new Uri(apiBase).Host;
-        Debug.WriteLine($"► Validación TLS  host={req.RequestUri!.Host}  ok={ok}");
-        return ok;
-    }
+        req.RequestUri!.Host == new Uri(apiBase).Host
 };
 using var http = new HttpClient(handler) { BaseAddress = new Uri(apiBase) };
 
-// ──────────────────────────────────────────────────
-// 3) Dar de alta el USB en la tabla DispositivosUSB
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 3) Crear / registrar el USB
+// --------------------------------------------------------------------
 var usbDto = new { serial, thumbprint = "" };
 Debug.WriteLine("POST /api/usb  →  " + JsonSerializer.Serialize(usbDto));
-
 var usbResp = await http.PostAsJsonAsync("/api/usb", usbDto);
 Debug.WriteLine($"Respuesta HTTP: {(int)usbResp.StatusCode} {usbResp.StatusCode}");
 usbResp.EnsureSuccessStatusCode();
 
-// ──────────────────────────────────────────────────
-// 4) Crear el usuario Admin
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 4) Crear usuario
+// --------------------------------------------------------------------
 var userDto = new
 {
-    rut = adminRut,
-    nombre = "admin",
-    depto = "TI",
-    email = adminEmail,
+    rut,
+    nombre,
+    depto,
+    email,
     rol = "Admin",
-    pin = adminPin
+    pin
 };
 Debug.WriteLine("POST /api/usuarios  →  " + JsonSerializer.Serialize(userDto));
-
 var usrResp = await http.PostAsJsonAsync("/api/usuarios", userDto);
 Debug.WriteLine($"Respuesta HTTP: {(int)usrResp.StatusCode} {usrResp.StatusCode}");
 usrResp.EnsureSuccessStatusCode();
-
 var usuario = await usrResp.Content.ReadFromJsonAsync<UsuarioCreated>();
 Debug.WriteLine($"Usuario creado.  id={usuario!.id}  msg={usuario.msg}");
 
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
 // 5) Vincular USB ⇄ Usuario
-// ──────────────────────────────────────────────────
-var vincDto = new { serial, usuarioRut = adminRut };
+// --------------------------------------------------------------------
+var vincDto = new { serial, usuarioRut = rut };
 Debug.WriteLine("POST /api/usb/asignar  →  " + JsonSerializer.Serialize(vincDto));
-
 var vincResp = await http.PostAsJsonAsync("/api/usb/asignar", vincDto);
 Debug.WriteLine($"Respuesta HTTP: {(int)vincResp.StatusCode} {vincResp.StatusCode}");
 vincResp.EnsureSuccessStatusCode();
 
-// ──────────────────────────────────────────────────
-// 6) Generar PKI dentro del USB
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 6) Generar PKI en el pendrive
+// --------------------------------------------------------------------
 var pkiDir = Path.Combine(drive.RootDirectory.FullName, "pki");
 Directory.CreateDirectory(pkiDir);
-
 Debug.WriteLine($"Generando PKI en {pkiDir} …");
-var (certPath, keyPath) = PkiService.GeneratePkcs8KeyPair(serial!, pkiDir);
+var (certPath, keyPath) = PkiService.GeneratePkcs8KeyPair(serial, pkiDir);
 Debug.WriteLine($"Cert   → {certPath}");
 Debug.WriteLine($"Clave  → {keyPath}");
 
-// ──────────────────────────────────────────────────
-// 7) Escribir config.json
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
+// 7) config.json
+// --------------------------------------------------------------------
 var cfg = new
 {
-    userDto.nombre,
-    userDto.rut,
-    userDto.email,
-    userDto.rol,
+    nombre,
+    rut,
+    email,
+    rol = "Admin",
     Serial = serial,
     Fecha = DateTime.UtcNow
 };
@@ -130,38 +150,31 @@ File.WriteAllText(cfgPath,
     JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
 Debug.WriteLine($"config.json escrito en {cfgPath}");
 
-// ──────────────────────────────────────────────────
+// --------------------------------------------------------------------
 Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine("\nUSB-ADM preparado ✔️  ¡Arranca la aplicación!");
 Console.ResetColor();
 Debug.WriteLine("▲ bootstrap finalizado correctamente");
 
-// ══════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════
 //  Modelos & helpers
-// ══════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════
 record UsuarioCreated(int id, string? msg);
 
 // ---------- UsbHelper ------------------------------------------------
 static class UsbHelper
 {
-    /// <summary>
-    /// Devuelve el SerialNumber del pendrive en MAYÚSCULAS.
-    /// 1) Win32_DiskDrive.SerialNumber
-    /// 2) Si falla, Volume Serial (GetVolumeInformation)
-    ///   ⇒ nunca devuelve null/empty.
-    /// </summary>
     public static string GetUsbSerial(string driveLetter /* «F» ó «F:\» */)
     {
         driveLetter = driveLetter.TrimEnd('\\', ':');
 
-        // ----- 1) WMI -------------------------------------------------
         try
         {
-            using var query = new ManagementObjectSearcher(
+            using var q = new ManagementObjectSearcher(
                 $"ASSOCIATORS OF {{Win32_LogicalDisk.DeviceID='{driveLetter}:'}} " +
                 "WHERE AssocClass=Win32_LogicalDiskToPartition");
 
-            foreach (ManagementObject part in query.Get())
+            foreach (ManagementObject part in q.Get())
             {
                 using var disks = new ManagementObjectSearcher(
                     $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{part["DeviceID"]}'}} " +
@@ -178,25 +191,16 @@ static class UsbHelper
                 }
             }
         }
-        catch (Exception ex)
-        {
-            Debug.WriteLine("WMI error: " + ex.Message);
-        }
+        catch (Exception ex) { Debug.WriteLine("WMI error: " + ex.Message); }
 
-        // ----- 2) Volume serial (CreateFile + GetVolumeInformation) ---
+        // Volcado de volumen si WMI falla
         if (GetVolumeInformation($@"{driveLetter}:\",
-                null, 0, out uint volSerial, out _, out _, null, 0))
-        {
-            string volSer = volSerial.ToString("X8");           // 8-dígitos HEX
-            Debug.WriteLine($"  Volume → {volSer}");
-            return volSer;
-        }
+                null, 0, out uint volSer, out _, out _, null, 0))
+            return volSer.ToString("X8");
 
-        // Si algo MUY raro ocurre, devolvemos “UNKNOWN”
         return "UNKNOWN";
     }
 
-    // P/Invoke ──────────────────────────────────────────────────────
     [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     private static extern bool GetVolumeInformation(
         string lpRootPathName,
@@ -216,15 +220,12 @@ static class PkiService
         string commonName, string destDir)
     {
         using var rsa = RSA.Create(2048);
-
         var req = new CertificateRequest(
             new X500DistinguishedName($"CN={commonName}"),
             rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        var notBefore = DateTimeOffset.UtcNow;
-        var notAfter = notBefore.AddYears(5);
-
-        using var cert = req.CreateSelfSigned(notBefore, notAfter);
+        using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow,
+                                              DateTimeOffset.UtcNow.AddYears(5));
 
         string certPath = Path.Combine(destDir, "cert.crt");
         string keyPath = Path.Combine(destDir, "priv.key");
@@ -232,9 +233,8 @@ static class PkiService
         File.WriteAllText(certPath,
             PemEncoding.Write("CERTIFICATE", cert.RawData));
 
-        var pkcs8 = rsa.ExportPkcs8PrivateKey();
         File.WriteAllText(keyPath,
-            PemEncoding.Write("PRIVATE KEY", pkcs8));
+            PemEncoding.Write("PRIVATE KEY", rsa.ExportPkcs8PrivateKey()));
 
         return (certPath, keyPath);
     }
