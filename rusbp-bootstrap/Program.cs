@@ -263,7 +263,7 @@ class Program
                 var (certPath, keyPath) = PkiService.GeneratePkcs8KeyPair(selectedUsb.Serial, pkiDir);
 
                 // Leer el thumbprint SHA1 del certificado recién generado
-                var cert = new X509Certificate2(certPath);
+                var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certPath);
                 string thumbprint = cert.Thumbprint?.ToUpperInvariant() ?? "";
 
                 var handler = new HttpClientHandler
@@ -324,19 +324,64 @@ class Program
                     continue;
                 }
 
-                // Pruebas: verify_usb y login (ajusta payload según API real)
-                bool verifyOk = await backend.ProbarVerifyUsbAsync(selectedUsb.Serial);
-                bool loginOk = await backend.ProbarLoginAsync(selectedUsb.Serial, usuario.Pin);
+                // === PRUEBAS AUTENTICACIÓN USB ===
+                // 1. Leer certificado y clave privada PEM generados
+                string certPem = File.ReadAllText(certPath);
+                string privKeyPem = File.ReadAllText(keyPath);
 
-                if (!verifyOk || !loginOk)
+                // 2. Obtener challenge del backend
+                string? challengeB64 = await backend.ObtenerChallengeVerifyUsbAsync(selectedUsb.Serial, certPem);
+                if (string.IsNullOrWhiteSpace(challengeB64))
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("❌ Error en pruebas de autenticación USB/login. Eliminando usuario y USB (rollback).");
+                    Console.WriteLine("❌ No se pudo obtener el challenge de verify-usb. Rollback.");
                     Console.ResetColor();
                     await backend.EliminarUsuarioAsync(usuario.Rut);
                     await backend.EliminarUsbAsync(selectedUsb.Serial);
                     continue;
                 }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("✔️  [BACKEND] /api/auth/verify-usb exitoso. Challenge recibido.");
+                    Console.ResetColor();
+                }
+
+                // 3. Firmar el challenge usando la clave privada del USB
+                string signatureB64;
+                try
+                {
+                    signatureB64 = CryptoHelper.FirmarChallenge(privKeyPem, challengeB64);
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("❌ Error al firmar el challenge: " + ex.Message);
+                    Console.ResetColor();
+                    await backend.EliminarUsuarioAsync(usuario.Rut);
+                    await backend.EliminarUsbAsync(selectedUsb.Serial);
+                    continue;
+                }
+
+                // 4. Probar login usando la firma y el PIN (y una MAC dummy por ahora)
+                bool loginOk = await backend.ProbarLoginAsync(selectedUsb.Serial, signatureB64, usuario.Pin, "00-11-22-33-44-55");
+
+                if (!loginOk)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("❌ [BACKEND] /api/auth/login falló. Eliminando usuario y USB (rollback).");
+                    Console.ResetColor();
+                    await backend.EliminarUsuarioAsync(usuario.Rut);
+                    await backend.EliminarUsbAsync(selectedUsb.Serial);
+                    continue;
+                }
+                else
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine("✔️  [BACKEND] /api/auth/login exitoso. ¡Login test ok!");
+                    Console.ResetColor();
+                }
+
 
                 // Crear config.json
                 var config = new ConfigJson
@@ -357,6 +402,7 @@ class Program
 
                 continue;
             }
+
 
         EndOfAction:
             Console.Clear();

@@ -38,6 +38,29 @@ namespace rusbp_bootstrap.Core
             using var sr = new StreamReader(cs);
             return sr.ReadToEnd();
         }
+        /// <summary>
+        /// Firma un challenge en base64 usando una clave privada RSA en formato PEM (PKCS#8 o PKCS#1).
+        /// </summary>
+        public static string FirmarChallenge(string privateKeyPem, string challengeBase64)
+        {
+            byte[] challengeBytes = Convert.FromBase64String(challengeBase64);
+
+            using RSA rsa = RSA.Create();
+
+            // Desde .NET 5 soporta PKCS#8. Si tu clave es PKCS#1, intenta actualizar a .NET 7+.
+            try
+            {
+                rsa.ImportFromPem(privateKeyPem.ToCharArray());
+            }
+            catch (Exception)
+            {
+                throw new Exception("Error importando la clave privada. Asegúrate que esté en formato PEM (PKCS#8 o PKCS#1) y sin password.");
+            }
+
+            // Firma usando SHA256 y PKCS#1 v1.5 padding
+            byte[] signature = rsa.SignData(challengeBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            return Convert.ToBase64String(signature);
+        }
     }
 }
 

@@ -6,6 +6,8 @@ El objetivo es permitir limpiar, descifrar y preparar un **USB root** seguro par
 
 ---
 
+---
+
 ## 🟩 **Flujo de uso (lógico y seguro)**
 
 INICIO
@@ -105,7 +107,7 @@ rusbp-bootstrap/
 ## 👩‍💻 **Características Técnicas**
 
 - **Detección robusta de USBs** y selección asistida.
-- **BitLocker opcional**, con validación de edición de Windows y mensajes de advertencia claros.
+- **BitLocker opcional**, con validación de edición de Windows y advertencias claras.
 - **Lógica modularizada** (cada helper aislado en su archivo).
 - **Cifrado seguro de la clave BitLocker** dentro del propio USB root (AES con password).
 - **Integración directa con backend** (alta USB, usuario, asociación) vía API REST.
@@ -116,7 +118,7 @@ rusbp-bootstrap/
 
 ## 🛡️ **Notas de seguridad y mejores prácticas**
 
-- **No retires el USB durante el proceso de cifrado ni configuración**.
+- **No retires el USB durante el proceso de cifrado ni configuración.**
 - **Guarda la clave BitLocker en un entorno seguro y nunca fuera de los agentes autorizados.**
 - **El cifrado del USB root es altamente recomendado para ambientes productivos.**
 

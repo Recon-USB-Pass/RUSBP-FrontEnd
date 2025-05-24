@@ -50,12 +50,22 @@ namespace rusbp_bootstrap.Api
         }
 
         // 5. Probar /api/auth/login (ajusta payload según backend)
-        public async Task<bool> ProbarLoginAsync(string serial, string pin)
+        public async Task<string?> ObtenerChallengeVerifyUsbAsync(string serial, string certPem)
         {
-            var resp = await _http.PostAsJsonAsync("/api/auth/login", new { serial, pin });
-            if (!resp.IsSuccessStatusCode) return false;
-            return true;
+            var payload = new { serial, certPem };
+            var resp = await _http.PostAsJsonAsync("/api/auth/verify-usb", payload);
+            if (resp.IsSuccessStatusCode)
+                return await resp.Content.ReadAsStringAsync();
+            return null;
         }
+
+        public async Task<bool> ProbarLoginAsync(string serial, string signatureBase64, string pin, string macAddress)
+        {
+            var payload = new { serial, signatureBase64, pin, macAddress };
+            var resp = await _http.PostAsJsonAsync("/api/auth/login", payload);
+            return resp.IsSuccessStatusCode;
+        }
+
 
         // 6. ELIMINAR Usuario (por Rut)
         public async Task<bool> EliminarUsuarioAsync(string rut)
