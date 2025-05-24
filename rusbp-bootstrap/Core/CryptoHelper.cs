@@ -7,6 +7,9 @@ namespace rusbp_bootstrap.Core
 {
     public static class CryptoHelper
     {
+        /// <summary>
+        /// Cifra un string con AES (salt aleatorio, IV aleatorio), devuelve byte[].
+        /// </summary>
         public static byte[] EncryptString(string plainText, string password)
         {
             using var aes = Aes.Create();
@@ -23,6 +26,9 @@ namespace rusbp_bootstrap.Core
             return ms.ToArray();
         }
 
+        /// <summary>
+        /// Descifra un byte[] cifrado con EncryptString usando el password dado.
+        /// </summary>
         public static string DecryptString(byte[] cipherData, string password)
         {
             using var ms = new MemoryStream(cipherData);
@@ -38,6 +44,7 @@ namespace rusbp_bootstrap.Core
             using var sr = new StreamReader(cs);
             return sr.ReadToEnd();
         }
+
         /// <summary>
         /// Firma un challenge en base64 usando una clave privada RSA en formato PEM (PKCS#8 o PKCS#1).
         /// </summary>
@@ -61,6 +68,26 @@ namespace rusbp_bootstrap.Core
             byte[] signature = rsa.SignData(challengeBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
             return Convert.ToBase64String(signature);
         }
+
+        /// <summary>
+        /// Guarda los archivos .btlk, .btlk-agente y .btlk-ip cifrados con la clave root.
+        /// </summary>
+        public static void SaveBtlkFiles(string usbRootPath, string claveRoot, string claveAgente, string ipBackend)
+        {
+            var sysDir = Path.Combine(usbRootPath, "rusbp.sys");
+            Directory.CreateDirectory(sysDir);
+
+            // Guardar .btlk (ROOT) - contiene la clave root, cifrada con clave root
+            var encryptedRoot = EncryptString(claveRoot, claveRoot);
+            File.WriteAllBytes(Path.Combine(sysDir, ".btlk"), encryptedRoot);
+
+            // Guardar .btlk-agente (AGENTE) - contiene la clave generica, cifrada con clave root
+            var encryptedAgente = EncryptString(claveAgente, claveRoot);
+            File.WriteAllBytes(Path.Combine(sysDir, ".btlk-agente"), encryptedAgente);
+
+            // Guardar .btlk-ip - contiene la IP del backend, cifrada con clave root
+            var encryptedIp = EncryptString(ipBackend, claveRoot);
+            File.WriteAllBytes(Path.Combine(sysDir, ".btlk-ip"), encryptedIp);
+        }
     }
 }
-

@@ -8,9 +8,56 @@ using System.Security.Cryptography.X509Certificates;
 
 class Program
 {
+    // ---- 1. Solicitar IP del backend ----
+    static string SolicitarIpBackend()
+    {
+        while (true)
+        {
+            Console.Clear();
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Ingrese la IP del Backend Sistema Central (ej: 192.168.1.209): ");
+            Console.ResetColor();
+            var ip = Console.ReadLine()?.Trim() ?? "";
+            if (string.IsNullOrWhiteSpace(ip) || !System.Net.IPAddress.TryParse(ip, out _))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("IP inválida. Intente de nuevo.");
+                Console.ResetColor();
+                continue;
+            }
+
+            // Siempre intenta el ping
+            try
+            {
+                var ping = new System.Net.NetworkInformation.Ping();
+                var reply = ping.Send(ip, 1500);
+                if (reply.Status != System.Net.NetworkInformation.IPStatus.Success)
+                {
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("⚠️  No se pudo hacer ping al backend. ¿Desea continuar de todas formas? (S/N):");
+                    Console.ResetColor();
+                    var resp = Console.ReadLine()?.Trim().ToUpper();
+                    if (resp != "S")
+                        continue;
+                }
+            }
+            catch
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("⚠️  No se pudo hacer ping al backend. ¿Desea continuar de todas formas? (S/N):");
+                Console.ResetColor();
+                var resp = Console.ReadLine()?.Trim().ToUpper();
+                if (resp != "S")
+                    continue;
+            }
+            return ip;
+        }
+    }
+
     static async Task Main()
     {
         UsbDeviceInfo? selectedUsb = null;
+        string backendIp = SolicitarIpBackend(); // IP del backend, se pide al principio o cuando elijan la opción
 
         while (true)
         {
@@ -21,8 +68,9 @@ class Program
                 Console.Clear();
             }
 
-            // Mostrar siempre la unidad activa al tope
+            // Mostrar siempre la IP y unidad activa al tope
             Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[IP en uso]: {backendIp}");
             Console.WriteLine($"Unidad en uso: {selectedUsb.DriveLetter ?? "(sin letra)"} - Serial: {selectedUsb.Serial} - {selectedUsb.VolumeLabel ?? ""} - {(selectedUsb.SizeBytes ?? 0) / 1024 / 1024 / 1024} GB");
             Console.ResetColor();
 
@@ -33,47 +81,59 @@ class Program
             // Flujo recomendado (verde)
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("\nFlujo recomendado:");
-            Console.WriteLine("1) Seleccione la unidad USB a trabajar.");
-            Console.WriteLine("2) Luego, LIMPIE la unidad si viene de un uso anterior.");
-            Console.WriteLine("3) Si desea, DESCIFRE la unidad (si está cifrada y quiere quitar BitLocker).");
-            Console.WriteLine("4) CIFRE la unidad con BitLocker si aún no está cifrada.");
-            Console.WriteLine("5) Finalmente, REGISTRE el root (esto solo asocia la unidad/usuario y genera llaves).");
+            Console.WriteLine("1) Cambiar IP del backend.");
+            Console.WriteLine("2) Cambiar unidad USB.");
+            Console.WriteLine("3) Limpiar la unidad si viene de un uso anterior.");
+            Console.WriteLine("4) Descifrar la unidad (si está cifrada y quiere quitar BitLocker).");
+            Console.WriteLine("5) Cifrar la unidad con BitLocker (si aún no está cifrada).");
+            Console.WriteLine("6) Registrar root (genera PKI, .btlk, .btlk-agente, .btlk-ip).");
+            Console.WriteLine("7) Salir.");
             Console.WriteLine("Si la unidad ya está cifrada, puede saltar directo al registro, se le pedirá la clave BitLocker solo cuando sea necesario.");
             Console.ResetColor();
 
             // Menú principal
             Console.ForegroundColor = ConsoleColor.Yellow;
             Console.WriteLine("\nSeleccione una opción:");
-            Console.WriteLine("1. Cambiar unidad USB");
-            Console.WriteLine("2. Limpiar la unidad (BORRAR TODO, NO descifra)");
-            Console.WriteLine("3. Descifrar la unidad (quita BitLocker, no borra archivos)");
-            Console.WriteLine("4. Cifrar unidad con BitLocker (solo si aún no está cifrada)");
-            Console.WriteLine("5. Registrar root (no cifra, solo registra backend y genera PKI/config)");
-            Console.WriteLine("6. Salir");
+            Console.WriteLine("1. Cambiar IP del backend");
+            Console.WriteLine("2. Cambiar unidad USB");
+            Console.WriteLine("3. Limpiar la unidad (BORRAR TODO, NO descifra)");
+            Console.WriteLine("4. Descifrar la unidad (quita BitLocker, no borra archivos)");
+            Console.WriteLine("5. Cifrar unidad con BitLocker (solo si aún no está cifrada)");
+            Console.WriteLine("6. Registrar root (genera PKI, .btlk, .btlk-agente, .btlk-ip)");
+            Console.WriteLine("7. Salir");
             Console.ResetColor();
 
             var menuOpt = Console.ReadLine()?.Trim();
             bool showSuccess = false, showFail = false;
             string? resultMsg = null;
 
-            if (menuOpt == "6")
+            if (menuOpt == "7")
                 break;
 
-            // Cambiar unidad USB
+            // Cambiar IP del backend
             if (menuOpt == "1")
+            {
+                backendIp = SolicitarIpBackend();
+                Console.Clear();
+                continue;
+            }
+
+            // Cambiar unidad USB
+            if (menuOpt == "2")
             {
                 selectedUsb = null;
                 Console.Clear();
                 continue;
             }
 
-            // Recordatorio de unidad activa
+            // Recordatorio de unidad e IP activa
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine($"\n[INFO] Trabajando sobre: {selectedUsb.DriveLetter ?? "(sin letra)"} - Serial: {selectedUsb.Serial}");
+            Console.WriteLine($"[IP en uso]: {backendIp}");
             Console.ResetColor();
 
             // Limpiar unidad
-            if (menuOpt == "2")
+            if (menuOpt == "3")
             {
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine("⚠️  Esta acción borrará TODOS los archivos de la unidad (NO descifra). ¿Desea continuar? (S/N): ");
@@ -150,7 +210,7 @@ class Program
             }
 
             // Descifrar unidad
-            if (menuOpt == "3")
+            if (menuOpt == "4")
             {
                 Console.WriteLine("Ingrese la clave BitLocker de la unidad:");
                 string clave = Console.ReadLine()?.Trim() ?? "";
@@ -178,7 +238,7 @@ class Program
             }
 
             // Cifrar unidad
-            if (menuOpt == "4")
+            if (menuOpt == "5")
             {
                 var edition = BootstrapHelpers.GetWindowsEdition();
                 bool canBitLocker =
@@ -224,29 +284,30 @@ class Program
                 goto EndOfAction;
             }
 
-            // Registrar root (registra backend, PKI/config, TESTEA login/verify, elimina si falla)
-            if (menuOpt == "5")
+            // Registrar root (registra backend, PKI/config, TESTEA login/verify, elimina si falla, y guarda 3 .btlk)
+            if (menuOpt == "6")
             {
-                // --- 1. Desbloquear si está cifrada ---
+                // 1. Desbloquear si está cifrada
                 bool isLocked = BitLockerManager.IsDriveLocked(selectedUsb.DriveLetter);
+                string passRoot = "";
                 if (isLocked)
                 {
                     Console.ForegroundColor = ConsoleColor.Yellow;
-                    Console.WriteLine("La unidad está cifrada con BitLocker. Se requiere la clave para registrar root y escribir archivos.");
+                    Console.WriteLine("[SETUP] Ingrese la clave BitLocker **del ROOT** (mínimo 8 caracteres):");
+                    Console.WriteLine("IMPORTANTE: Esta clave es SOLO para el USB root. No la use en agentes locales. Guárdela de forma segura.");
                     Console.ResetColor();
 
                     while (true)
                     {
-                        Console.Write("Ingrese la clave BitLocker de la unidad (ENTER para cancelar): ");
-                        string claveBitlocker = Console.ReadLine()?.Trim() ?? "";
-                        if (string.IsNullOrWhiteSpace(claveBitlocker))
+                        passRoot = Console.ReadLine()?.Trim() ?? "";
+                        if (string.IsNullOrWhiteSpace(passRoot) || passRoot.Length < 8)
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine("No se ingresó clave. Abortando registro root.");
+                            Console.WriteLine("La clave es obligatoria y debe tener al menos 8 caracteres.");
                             Console.ResetColor();
-                            break;
+                            continue;
                         }
-                        if (!BitLockerManager.UnlockDrive(selectedUsb.DriveLetter, claveBitlocker))
+                        if (!BitLockerManager.UnlockDrive(selectedUsb.DriveLetter, passRoot))
                         {
                             Console.ForegroundColor = ConsoleColor.Red;
                             Console.WriteLine("✖ No se pudo desbloquear la unidad. Verifique la clave e intente de nuevo.");
@@ -256,21 +317,74 @@ class Program
                         break;
                     }
                 }
+                else
+                {
+                    // Si no está cifrada, pide clave igual porque la va a necesitar para .btlk
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine("[SETUP] Ingrese la clave BitLocker **del ROOT** (mínimo 8 caracteres):");
+                    Console.WriteLine("IMPORTANTE: Esta clave es SOLO para el USB root. No la use en agentes locales. Guárdela de forma segura.");
+                    Console.ResetColor();
 
-                // *** GENERA PKI Y OBTIENE THUMBPRINT ANTES DE REGISTRAR EL USB ***
+                    while (true)
+                    {
+                        passRoot = Console.ReadLine()?.Trim() ?? "";
+                        if (string.IsNullOrWhiteSpace(passRoot) || passRoot.Length < 8)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("La clave es obligatoria y debe tener al menos 8 caracteres.");
+                            Console.ResetColor();
+                            continue;
+                        }
+                        break;
+                    }
+                }
+
+                // 2. Clave de los agentes
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[SETUP] Ingrese la clave BitLocker **GENÉRICA** de los agentes empleados/administradores (mínimo 8 caracteres):");
+                Console.WriteLine("Esta será la clave estándar para todos los USB de empleados y administradores.");
+                Console.ResetColor();
+
+                string passAgente = "";
+                while (true)
+                {
+                    passAgente = Console.ReadLine()?.Trim() ?? "";
+                    if (string.IsNullOrWhiteSpace(passAgente) || passAgente.Length < 8)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("La clave es obligatoria y debe tener al menos 8 caracteres.");
+                        Console.ResetColor();
+                        continue;
+                    }
+                    break;
+                }
+
+                // 3. Guardar IP en .btlk-ip
+                string sysDir = Path.Combine(selectedUsb.DriveLetter + @":\", "rusbp.sys");
+                Directory.CreateDirectory(sysDir);
+                byte[] encryptedIp = CryptoHelper.EncryptString(backendIp, passRoot);
+                File.WriteAllBytes(Path.Combine(sysDir, ".btlk-ip"), encryptedIp);
+
+                // 4. Guardar .btlk (root) y .btlk-agente (agente)
+                var encryptedRoot = CryptoHelper.EncryptString(passRoot, passRoot);
+                File.WriteAllBytes(Path.Combine(sysDir, ".btlk"), encryptedRoot);
+                var encryptedAgente = CryptoHelper.EncryptString(passAgente, passRoot);
+                File.WriteAllBytes(Path.Combine(sysDir, ".btlk-agente"), encryptedAgente);
+
+                // 5. GENERAR PKI Y OBTENER THUMBPRINT ANTES DE REGISTRAR EL USB
                 var pkiDir = Path.Combine(selectedUsb.DriveLetter + @":\", "pki");
                 Directory.CreateDirectory(pkiDir);
                 var (certPath, keyPath) = PkiService.GeneratePkcs8KeyPair(selectedUsb.Serial, pkiDir);
 
                 // Leer el thumbprint SHA1 del certificado recién generado
-                var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certPath);
+                var cert = new X509Certificate2(certPath);
                 string thumbprint = cert.Thumbprint?.ToUpperInvariant() ?? "";
 
                 var handler = new HttpClientHandler
                 {
                     ServerCertificateCustomValidationCallback = (req, certH, chain, errs) => true // SOLO DEV
                 };
-                using var http = new HttpClient(handler) { BaseAddress = new Uri("https://192.168.1.209:8443") };
+                using var http = new HttpClient(handler) { BaseAddress = new Uri("https://" + backendIp + ":8443") };
                 var backend = new BackendClient(http);
 
                 var usuario = new Usuario
@@ -325,11 +439,9 @@ class Program
                 }
 
                 // === PRUEBAS AUTENTICACIÓN USB ===
-                // 1. Leer certificado y clave privada PEM generados
                 string certPem = File.ReadAllText(certPath);
                 string privKeyPem = File.ReadAllText(keyPath);
 
-                // 2. Obtener challenge del backend
                 string? challengeB64 = await backend.ObtenerChallengeVerifyUsbAsync(selectedUsb.Serial, certPem);
                 if (string.IsNullOrWhiteSpace(challengeB64))
                 {
@@ -347,7 +459,6 @@ class Program
                     Console.ResetColor();
                 }
 
-                // 3. Firmar el challenge usando la clave privada del USB
                 string signatureB64;
                 try
                 {
@@ -363,7 +474,6 @@ class Program
                     continue;
                 }
 
-                // 4. Probar login usando la firma y el PIN (y una MAC dummy por ahora)
                 bool loginOk = await backend.ProbarLoginAsync(selectedUsb.Serial, signatureB64, usuario.Pin, "00-11-22-33-44-55");
 
                 if (!loginOk)
@@ -382,8 +492,7 @@ class Program
                     Console.ResetColor();
                 }
 
-
-                // Crear config.json
+                // Crear config.json (no guarda pass ni IP, solo info administrativa)
                 var config = new ConfigJson
                 {
                     Nombre = usuario.Nombre,
@@ -422,9 +531,10 @@ class Program
             {
                 Console.WriteLine(resultMsg ?? "");
             }
-            // Mostrar unidad activa antes del menú
+            // Mostrar unidad activa y IP antes del menú
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine($"\nUnidad en uso: {selectedUsb.DriveLetter ?? "(sin letra)"} - Serial: {selectedUsb.Serial}");
+            Console.WriteLine($"[IP en uso]: {backendIp}");
             Console.ResetColor();
         }
         Console.WriteLine("\nPresione cualquier tecla para cerrar...");

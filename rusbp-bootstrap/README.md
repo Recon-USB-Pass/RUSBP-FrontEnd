@@ -6,135 +6,113 @@ El objetivo es permitir limpiar, descifrar y preparar un **USB root** seguro par
 
 ---
 
----
-
 ## 🟩 **Flujo de uso (lógico y seguro)**
 
-INICIO
+### INICIO
 
-Detectar todas las unidades USB conectadas
-└─ Si NO hay unidades → mostrar error y solicitar unidad. esperar a que se ingrese una unidad
-└─ Si hay unidades:
-→ Mostrar lista de unidades detectadas
-→ Solicitar al usuario seleccionar la unidad a trabajar
-→ Si se retira la unidad, avisar que no se retire en el proceso hasta que se termine, y terminar con un aprete una tecla para cerrar cmd
+1. **Pedir la IP del Backend Sistema Central**
+   - Solicita la IP (solo formato IPv4, sin http ni puerto)
+   - Valida conectividad con ping
+   - Si no responde, muestra advertencia y permite continuar bajo confirmación
 
-Confirmar selección de unidad
-→ Mostrar resumen de la unidad seleccionada (letra, etiqueta, tamaño)
+2. **Detectar todas las unidades USB conectadas**
+   - Si NO hay unidades → muestra error y solicita conectar una
+   - Si hay unidades:
+     - Muestra lista de unidades detectadas
+     - Solicita seleccionar la unidad a trabajar
+     - Advierte NO retirar la unidad durante el proceso
 
-Menú principal: Elegir acción a realizar
-├─ Opción 1: "Limpiar la unidad y descifrarla"
-│ ├─ Advertir al usuario que la unidad será borrada y descifrada
-│ ├─ Preguntar confirmación (S/N)
-│ └─ Si NO confirma, volver a preguntar opciones del menú principal
-│ └─ Si confirma:
-│ ├─ Solicitar clave BitLocker (si está cifrada)
-│ ├─ Intentar desbloquear y descifrar con la clave
-│ ├─ Si éxito → continuar; Si error → mostrar mensaje y terminar
-│ ├─ Borrar todos los archivos y carpetas de la unidad
-│ └─ Mostrar mensaje "Unidad lista para reutilizar" y terminar
-│
-└─ Opción 2: "Crear/preparar USB root seguro (flujo normal)"
-├─ Pedir datos del usuario root-admin:
-│ ├─ RUT
-│ ├─ Nombre
-│ ├─ Departamento
-│ ├─ Email
-│ └─ PIN
-│
-├─ Detectar edición de Windows:
-│ └─ Si NO es compatible con BitLocker:
-│ ├─ Advertir que no se recomienda seguir sin cifrado
-│ ├─ Preguntar si desea continuar sin cifrado (S/N)
-│ └─ Si NO acepta [Entonces continuar pero con un signo de Warning al comienzo de todo lo que sigue]
-│
-├─ Si es compatible con BitLocker:
-│ ├─ Recomendar cifrado
-│ └─ Solicitar clave BitLocker (mínimo 8 caracteres)
-│ └─ Si clave no cumple, pedir nuevamente con detalle para cumplir
-│
-├─ Obtener Serial del USB seleccionado
-│ └─ Si no se obtiene, mostrar error y terminar
-│
-├─ (Si se usa BitLocker)
-│ ├─ Cifrar la unidad seleccionada con la clave BitLocker
-│ ├─ Mostrar progreso en consola (polling manage-bde)
-│ └─ Guardar la clave BitLocker cifrada en el propio USB
-│
-├─ Registrar el USB en el backend vía API
-├─ Registrar usuario root-admin en el backend vía API
-├─ Asociar usuario ⇄ USB en el backend vía API
-├─ Generar claves PKI y guardarlas en el USB
-├─ Crear archivo config.json en el USB
-└─ Mostrar mensaje de éxito "USB root preparado"
+3. **Confirmar selección de unidad**
+   - Muestra resumen de la unidad seleccionada (letra, etiqueta, tamaño, serial)
 
-FIN
+4. **Menú principal: Elegir acción a realizar**
+   - **1. Cambiar IP del backend**
+     - Permite ingresar una nueva IP y valida nuevamente conectividad
+   - **2. Cambiar unidad USB**
+     - Permite seleccionar otra unidad conectada
+   - **3. Limpiar la unidad** (BORRAR TODO, NO descifra)
+     - Confirma la acción
+     - Si está cifrada, pide la clave BitLocker y desbloquea antes de limpiar
+     - Borra todos los archivos posibles (ignora errores de sistema/protegidos)
+   - **4. Descifrar la unidad** (quita BitLocker, no borra archivos)
+     - Solicita clave BitLocker, intenta descifrar, muestra resultado
+   - **5. Cifrar unidad con BitLocker** (si aún no está cifrada)
+     - Advierte que la clave que ingrese será SOLO para el USB root (no agentes)
+     - Solicita clave BitLocker root (mínimo 8 caracteres)
+     - Cifra la unidad y muestra progreso
+   - **6. Registrar root** (flujo normal)
+     - Pide datos del usuario root-admin:
+       - RUT, Nombre, Departamento, Email, PIN
+     - Pide la clave "global" de los agentes empleados/administradores (NO root)
+     - Advierte: "La clave BitLocker del root solo debe usarse en el USB root"
+     - Pide la clave del root para leer/escribir los archivos
+     - Genera claves PKI, guarda en el USB y obtiene serial y thumbprint
+     - **Registra el USB** (serial, thumbprint), usuario y asociación en backend
+     - **Guarda 3 archivos cifrados en `/rusbp.sys/`:**
+         - `.btlk`         = clave root      (cifrada con pass_root)
+         - `.btlk-agente`  = clave genérica  (cifrada con pass_root)
+         - `.btlk-ip`      = IP backend      (cifrada con pass_root)
+     - Crea `config.json` (sin datos sensibles)
+     - Muestra advertencia: "NO uses este USB root en los agentes locales, salvo emergencia"
+     - Muestra mensaje de éxito
+
+7. **FIN**
 
 ---
 
-## 🗂️ **Estructura del Proyecto**
-
-rusbp-bootstrap/
-│
-├── Program.cs // Flujo principal, menú y orquestador
-├── Core/
-│ ├── UsbManager.cs // Selección y serial de USBs
-│ ├── BitLockerManager.cs // BitLocker (cifrado, descifrado, progreso)
-│ ├── CryptoHelper.cs // AES para clave BitLocker
-│ ├── PkiService.cs // Generación PKI
-│ └── BootstrapHelpers.cs // Utilidades, prompts y edición de Windows
-├── Api/
-│ ├── BackendClient.cs // Cliente HTTP para la API central
-│ └── Dtos.cs // Modelos para requests/responses API
-├── Models/
-│ ├── Usuario.cs // Modelo usuario root-admin
-│ ├── UsbInfo.cs // Info completa unidad USB
-│ └── ConfigJson.cs // Modelo para config.json
-├── Properties/
-│ └── launchSettings.json // Opcional para desarrollo/IDE
-└── README.md
-
----
-
-## ⚡ **Requisitos**
+## ⚡ Requisitos
 
 - **Windows 10/11 Pro, Enterprise o Education** (para cifrado BitLocker)
 - **.NET 8.0 o superior**
-- **Permisos de administrador** (requerido para gestionar BitLocker)
+- **Permisos de administrador** (necesarios para BitLocker)
 
 ---
 
-## 👩‍💻 **Características Técnicas**
+## 👩‍💻 Características Técnicas
 
-- **Detección robusta de USBs** y selección asistida.
-- **BitLocker opcional**, con validación de edición de Windows y advertencias claras.
-- **Lógica modularizada** (cada helper aislado en su archivo).
-- **Cifrado seguro de la clave BitLocker** dentro del propio USB root (AES con password).
-- **Integración directa con backend** (alta USB, usuario, asociación) vía API REST.
-- **Generación de clave y certificado PKI** para la autenticación central.
-- **Mensajes de flujo claros** y protección contra errores de usuario o hardware.
+- Detección robusta de USBs y selección asistida
+- BitLocker opcional, con validación de edición de Windows y advertencias claras
+- Lógica modularizada (helpers separados)
+- Cifrado seguro de las claves dentro del propio USB root (AES, password root)
+- Integración directa con backend (alta USB, usuario, asociación, PKI) vía API REST
+- Generación de clave/certificado PKI para autenticación central
+- Gestión de archivos `.btlk`, `.btlk-agente`, `.btlk-ip` para agentes y root
+- Mensajes de flujo claros y protección ante errores de usuario o hardware
 
 ---
 
-## 🛡️ **Notas de seguridad y mejores prácticas**
+## 🛡️ Notas de seguridad y mejores prácticas
 
 - **No retires el USB durante el proceso de cifrado ni configuración.**
-- **Guarda la clave BitLocker en un entorno seguro y nunca fuera de los agentes autorizados.**
-- **El cifrado del USB root es altamente recomendado para ambientes productivos.**
+- **Guarda las claves BitLocker (root y agentes) en entornos seguros, nunca las anotes en texto plano.**
+- **El cifrado del USB root es altamente recomendado en ambientes productivos.**
+- **NO uses el USB root para iniciar sesión en agentes, salvo emergencia. Si se usa, se deja registro y advertencia.**
+- **Nunca dejes las claves dentro de archivos de configuración (`config.json`). Usa siempre los archivos `.btlk` cifrados.**
 
 ---
 
-## 📝 **Desarrollo y extensión**
+## 📝 Desarrollo y extensión
 
-- Toda la lógica de seguridad y manejo de dispositivos está en la carpeta `Core/`.
-- Puedes agregar soporte para otras políticas de cifrado o extensiones futuras siguiendo la arquitectura modular.
-- Para integración con nuevas APIs, basta extender `Api/BackendClient.cs` y sus modelos DTO.
+- Toda la lógica de seguridad y manejo de dispositivos está en la carpeta `Core/`
+- Puedes agregar soporte para otras políticas de cifrado o extensiones siguiendo la arquitectura modular
+- Para integración con nuevas APIs, basta extender `Api/BackendClient.cs` y sus modelos DTO
 
 ---
 
-## 🤝 **Contacto y contribución**
+## 💡 Notas prácticas sobre el código
 
-Si tienes dudas, mejoras o sugerencias, puedes abrir issues o PR en el repositorio principal del proyecto RUSBP.
+- En el flujo principal (`Program.cs`):
+    - Pide la IP y valida antes de cualquier otra cosa
+    - Pide y guarda las dos claves (root y agente) y la IP en archivos cifrados `.btlk`
+- Usa siempre el helper de cifrado simétrico (AES, `CryptoHelper`) para leer/escribir los archivos `.btlk`
+- El agente local, durante el setup, solo pide la clave root UNA VEZ para desencriptar y guardar todo localmente con DPAPI
+
+---
+
+## 🤝 Contacto y contribución
+
+¿Tienes dudas, mejoras o sugerencias?  
+Abre issues o pull requests en el repositorio principal del proyecto RUSBP.
 
 ---
 
