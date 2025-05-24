@@ -3417,11 +3417,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\RUSBP-Admin.csproj",
+      "projectUniqueName": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\RUSBP-Admin\\RUSBP-Admin.csproj",
       "projectName": "RUSBP-Admin",
-      "projectPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\RUSBP-Admin.csproj",
+      "projectPath": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\RUSBP-Admin\\RUSBP-Admin.csproj",
       "packagesPath": "C:\\Users\\RUSBP\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\RUSBP-Admin\\obj\\",
+      "outputPath": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\RUSBP-Admin\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -3454,7 +3454,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net8.0-windows7.0": {
@@ -3528,7 +3528,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   },

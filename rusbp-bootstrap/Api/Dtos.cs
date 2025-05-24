@@ -11,6 +11,7 @@ namespace rusbp_bootstrap.Api
         public string Thumbprint { get; set; } = "";
     }
 
+
     // DTO para usuario root-admin
     public class UsuarioDto
     {
@@ -35,4 +36,15 @@ namespace rusbp_bootstrap.Api
         public int Id { get; set; }
         public string? Msg { get; set; }
     }
+    public class VerifyUsbDto
+    {
+        public string Serial { get; set; } = "";
+    }
+
+    public class LoginDto
+    {
+        public string Serial { get; set; } = "";
+        public string Pin { get; set; } = "";
+    }
+
 }

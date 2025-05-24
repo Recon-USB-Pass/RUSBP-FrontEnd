@@ -7,8 +7,12 @@
       "RelativeMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|solutionrelative:program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|c:\\users\\rusbp\\desktop\\rusbp-frontend\\rusbp-bootstrap\\core\\bitlockermanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|solutionrelative:core\\bitlockermanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|c:\\users\\rusbp\\desktop\\rusbp-frontend\\rusbp-bootstrap\\api\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|solutionrelative:api\\dtos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|c:\\users\\rusbp\\desktop\\rusbp-frontend\\rusbp-bootstrap\\api\\backendclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|solutionrelative:api\\backendclient.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{04D20EF0-8A94-B0B6-87A8-5C796F2AFAAF}|rusbp-bootstrap.csproj|c:\\users\\rusbp\\desktop\\rusbp-frontend\\rusbp-bootstrap\\core\\usbmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -26,45 +30,32 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "BitLockerManager.cs",
-              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\BitLockerManager.cs",
-              "RelativeDocumentMoniker": "Core\\BitLockerManager.cs",
-              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\BitLockerManager.cs",
-              "RelativeToolTip": "Core\\BitLockerManager.cs",
-              "ViewState": "AgIAAFcAAAAAAAAAAAAQwGEAAAAlAAAAAAAAAA==",
+              "Title": "Dtos.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Api\\Dtos.cs",
+              "RelativeDocumentMoniker": "Api\\Dtos.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Api\\Dtos.cs",
+              "RelativeToolTip": "Api\\Dtos.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAgAAAAFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-24T07:39:07.268Z",
+              "WhenOpened": "2025-05-24T18:37:27.528Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
-              "Title": "UsbManager.cs",
-              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\UsbManager.cs",
-              "RelativeDocumentMoniker": "Core\\UsbManager.cs",
-              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\UsbManager.cs",
-              "RelativeToolTip": "Core\\UsbManager.cs",
-              "ViewState": "AgIAACoAAAAAAAAAAAAYwDkAAAAlAAAAAAAAAA==",
+              "Title": "BackendClient.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Api\\BackendClient.cs",
+              "RelativeDocumentMoniker": "Api\\BackendClient.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Api\\BackendClient.cs",
+              "RelativeToolTip": "Api\\BackendClient.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAwBUAAAAsAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-24T07:23:59.666Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "README.md",
-              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\README.md",
-              "RelativeDocumentMoniker": "README.md",
-              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\README.md",
-              "RelativeToolTip": "README.md",
-              "ViewState": "AgIAAHsAAAAAAAAAAAAkwIoAAABJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2025-05-24T07:05:03.379Z",
+              "WhenOpened": "2025-05-24T18:32:03.211Z",
               "EditorCaption": ""
             },
             {
@@ -75,9 +66,35 @@
               "RelativeDocumentMoniker": "Program.cs",
               "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Program.cs",
               "RelativeToolTip": "Program.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAnAAAAAAAAAA==",
+              "ViewState": "AgIAAFwBAAAAAAAAAAAiwHMBAABFAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-05-24T04:41:57.708Z",
+              "WhenOpened": "2025-05-24T18:28:20.214Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "UsbManager.cs",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\UsbManager.cs",
+              "RelativeDocumentMoniker": "Core\\UsbManager.cs",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\Core\\UsbManager.cs",
+              "RelativeToolTip": "Core\\UsbManager.cs",
+              "ViewState": "AgIAACAAAAAAAAAAAAASwC4AAABHAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-05-24T18:22:19.746Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "README.md",
+              "DocumentMoniker": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\README.md",
+              "RelativeDocumentMoniker": "README.md",
+              "ToolTip": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\README.md",
+              "RelativeToolTip": "README.md",
+              "ViewState": "AgIAAHsAAAAAAAAAAAAkwIcAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-05-24T07:05:03.379Z",
               "EditorCaption": ""
             }
           ]

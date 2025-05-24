@@ -1,9 +1,10 @@
-﻿using System;
+﻿using rusbp_bootstrap.Models;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management;
-using rusbp_bootstrap.Models;
+using System.Text.RegularExpressions;
 
 namespace rusbp_bootstrap.Core
 {
@@ -13,13 +14,15 @@ namespace rusbp_bootstrap.Core
         public string? VolumeLabel { get; set; }
         public string? DriveLetter { get; set; } // Ej: "F"
         public ulong? SizeBytes { get; set; }
+        public string? Serial { get; set; } // Serial físico USB, SIEMPRE EN MAYÚSCULAS Y HEX
         public bool IsMounted => !string.IsNullOrEmpty(DriveLetter);
     }
 
     public static class UsbManager
     {
         /// <summary>
-        /// Devuelve TODAS las unidades USB físicas conectadas, incluso si no están montadas o cifradas.
+        /// Devuelve TODAS las unidades USB físicas conectadas, incluso si no están montadas o están cifradas.
+        /// El serial retornado es el hardware serial (extracto hexadecimal del PNPDeviceID), nunca el DeviceId ni la letra.
         /// </summary>
         public static List<UsbDeviceInfo> ListAllUsbDevices()
         {
@@ -27,34 +30,69 @@ namespace rusbp_bootstrap.Core
             var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive WHERE InterfaceType='USB'");
             foreach (ManagementObject drive in searcher.Get())
             {
-                var deviceId = drive["DeviceID"].ToString();
+                var deviceId = drive["DeviceID"]?.ToString();
                 ulong? size = drive["Size"] != null ? Convert.ToUInt64(drive["Size"]) : (ulong?)null;
-                string? serial = drive["SerialNumber"]?.ToString();
+                string? serial = null;
 
-                // Buscar particiones (pueden no tener letra si está cifrada)
-                var partitionQuery = $"ASSOCIATORS OF {{Win32_DiskDrive.DeviceID='{deviceId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition";
-                var partitionSearcher = new ManagementObjectSearcher(partitionQuery);
-                bool foundAny = false;
-
-                foreach (ManagementObject partition in partitionSearcher.Get())
+                // 1. Extraer serial desde PNPDeviceID (más confiable con BitLocker)
+                var pnp = drive["PNPDeviceID"]?.ToString();
+                if (!string.IsNullOrEmpty(pnp))
                 {
-                    // Buscar letras asignadas (puede no haber ninguna)
+                    // Extrae el bloque hexadecimal largo después del último '\'
+                    // Ejemplo: USB\VID_0781&PID_5567\040174132B54FB6E1E0E...
+                    var match = Regex.Match(pnp, @"\\([0-9A-Fa-f]{16,})");
+                    if (match.Success)
+                        serial = match.Groups[1].Value.Length >= 20
+                            ? match.Groups[1].Value.Substring(0, 20).ToUpperInvariant()
+                            : match.Groups[1].Value.ToUpperInvariant();
+                }
+
+                // 2. Si por alguna razón no hay serial aún, intenta SerialNumber directo
+                if (string.IsNullOrWhiteSpace(serial))
+                {
+                    var serialRaw = drive["SerialNumber"]?.ToString();
+                    if (!string.IsNullOrWhiteSpace(serialRaw))
+                        serial = serialRaw.ToUpperInvariant();
+                }
+
+                // 3. Si aún no hay serial, fallback: volumen serial (NO recomendado, sólo para dispositivos sin serial físico)
+                if (string.IsNullOrWhiteSpace(serial) && deviceId != null)
+                {
+                    string? driveLetter = null;
+                    // Intenta asociar una letra de unidad si existe
+                    var partitionQuery = $"ASSOCIATORS OF {{Win32_DiskDrive.DeviceID='{deviceId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition";
+                    foreach (ManagementObject partition in new ManagementObjectSearcher(partitionQuery).Get())
+                    {
+                        var logicalQuery = $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partition["DeviceID"]}'}} WHERE AssocClass=Win32_LogicalDiskToPartition";
+                        foreach (ManagementObject logical in new ManagementObjectSearcher(logicalQuery).Get())
+                        {
+                            driveLetter = logical["DeviceID"]?.ToString().Replace(":", "");
+                        }
+                    }
+                    if (!string.IsNullOrWhiteSpace(driveLetter) && GetVolumeInformation($@"{driveLetter}:\", null, 0, out uint volSer, out _, out _, null, 0))
+                        serial = volSer.ToString("X8").ToUpperInvariant();
+                }
+
+                // Listar todas las particiones/volúmenes (montadas o no)
+                var partitionQuery2 = $"ASSOCIATORS OF {{Win32_DiskDrive.DeviceID='{deviceId}'}} WHERE AssocClass=Win32_DiskDriveToDiskPartition";
+                bool foundAny = false;
+                foreach (ManagementObject partition in new ManagementObjectSearcher(partitionQuery2).Get())
+                {
                     var logicalQuery = $"ASSOCIATORS OF {{Win32_DiskPartition.DeviceID='{partition["DeviceID"]}'}} WHERE AssocClass=Win32_LogicalDiskToPartition";
-                    var logicalSearcher = new ManagementObjectSearcher(logicalQuery);
                     bool foundLetter = false;
-                    foreach (ManagementObject logical in logicalSearcher.Get())
+                    foreach (ManagementObject logical in new ManagementObjectSearcher(logicalQuery).Get())
                     {
                         result.Add(new UsbDeviceInfo
                         {
                             DeviceId = deviceId!,
                             VolumeLabel = logical["VolumeName"]?.ToString(),
                             DriveLetter = logical["DeviceID"]?.ToString().Replace(":", ""),
-                            SizeBytes = size
+                            SizeBytes = size,
+                            Serial = serial // SIEMPRE en mayúsculas
                         });
                         foundLetter = true;
                         foundAny = true;
                     }
-                    // Si la partición no tiene letra (volumen no montado, bloqueado), igual la mostramos
                     if (!foundLetter)
                     {
                         result.Add(new UsbDeviceInfo
@@ -62,12 +100,12 @@ namespace rusbp_bootstrap.Core
                             DeviceId = deviceId!,
                             VolumeLabel = null,
                             DriveLetter = null,
-                            SizeBytes = size
+                            SizeBytes = size,
+                            Serial = serial
                         });
                         foundAny = true;
                     }
                 }
-                // Si no hay partición, mostrar el disco físico igual
                 if (!foundAny)
                 {
                     result.Add(new UsbDeviceInfo
@@ -75,7 +113,8 @@ namespace rusbp_bootstrap.Core
                         DeviceId = deviceId!,
                         VolumeLabel = null,
                         DriveLetter = null,
-                        SizeBytes = size
+                        SizeBytes = size,
+                        Serial = serial
                     });
                 }
             }
@@ -129,8 +168,7 @@ namespace rusbp_bootstrap.Core
                     {
                         Console.WriteLine("Ingrese la clave BitLocker:");
                         string clave = Console.ReadLine()?.Trim() ?? "";
-                        // Intenta buscar la letra con powershell/get-bitlockervolume, aquí solo instruimos
-                        // (Puedes automatizarlo, pero la UX estándar es que el usuario lo desbloquee y reintente)
+                        // UX estándar: el usuario lo desbloquea manualmente en Windows, luego repite.
                         Console.WriteLine("Intente desbloquearla manualmente desde Windows o PowerShell y vuelva a ejecutar el programa.");
                         return null;
                     }
@@ -145,5 +183,17 @@ namespace rusbp_bootstrap.Core
                 return selected;
             }
         }
+
+        // DLLImport para obtener serial por volumen (solo fallback, nunca como serial oficial)
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+        private static extern bool GetVolumeInformation(
+            string lpRootPathName,
+            System.Text.StringBuilder? lpVolumeNameBuffer,
+            int nVolumeNameSize,
+            out uint lpVolumeSerialNumber,
+            out uint lpMaximumComponentLength,
+            out uint lpFileSystemFlags,
+            System.Text.StringBuilder? lpFileSystemNameBuffer,
+            int nFileSystemNameSize);
     }
 }
