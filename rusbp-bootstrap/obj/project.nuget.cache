@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "dsp58xDeNSQ=",
+  "dgSpecHash": "z52ol8nXycc=",
   "success": true,
-  "projectFilePath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
+  "projectFilePath": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\RUSBP\\.nuget\\packages\\system.codedom\\9.0.5\\system.codedom.9.0.5.nupkg.sha512",
     "C:\\Users\\RUSBP\\.nuget\\packages\\system.management\\9.0.5\\system.management.9.0.5.nupkg.sha512",

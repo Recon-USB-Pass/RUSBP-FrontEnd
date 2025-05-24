@@ -1,0 +1,11 @@
+﻿{
+  "profiles": {
+    "rusbp-bootstrap": {
+      "commandName": "Project",
+      "workingDirectory": "..",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

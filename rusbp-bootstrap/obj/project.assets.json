@@ -161,11 +161,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
+      "projectUniqueName": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
       "projectName": "rusbp-bootstrap",
-      "projectPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
+      "projectPath": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\rusbp-bootstrap.csproj",
       "packagesPath": "C:\\Users\\RUSBP\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\RUSBP\\Desktop\\Recon-USB-Pass\\RUSBP-FrontEnd\\rusbp-bootstrap\\obj\\",
+      "outputPath": "C:\\Users\\RUSBP\\Desktop\\RUSBP-FrontEnd\\rusbp-bootstrap\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -198,7 +198,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -229,7 +229,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

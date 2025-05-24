@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("rusbp-bootstrap")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9e6055dce5e0c073baa55bb473f3b7cffb4acd95")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c1cf47ee1dea1efc1c5789723401f1e24ba146b7")]
 [assembly: System.Reflection.AssemblyProductAttribute("rusbp-bootstrap")]
 [assembly: System.Reflection.AssemblyTitleAttribute("rusbp-bootstrap")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
