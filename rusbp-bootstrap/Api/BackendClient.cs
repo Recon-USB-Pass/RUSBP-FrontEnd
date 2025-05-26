@@ -1,86 +1,100 @@
-﻿using System;
+﻿// BackendClient.cs ─ rusbp-bootstrap
+using System;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using rusbp_bootstrap.Models;
 
 namespace rusbp_bootstrap.Api
 {
-    public class BackendClient
+    /// <summary>
+    /// Cliente muy fino para los endpoints reales que hoy expone el backend.
+    /// Sólo conserva las llamadas que se usan en el flujo de bootstrap.  
+    /// — 2025-05-26
+    /// </summary>
+    public sealed class BackendClient
     {
         private readonly HttpClient _http;
+        public BackendClient(HttpClient http) => _http = http;
 
-        public BackendClient(HttpClient http)
+        /*────────────────────────────── 1) USB ──────────────────────────────*/
+
+        /// <summary> POST /api/usb/register  (registra un USB con su rol) </summary>
+        public async Task<bool> RegistrarUsbAsync(string serial,
+                                                  byte[] cipher, byte[] tag,
+                                                  UsbRole rol)
         {
-            _http = http;
+            var body = new
+            {
+                serial,
+                cipher = Convert.ToBase64String(cipher),
+                tag = Convert.ToBase64String(tag),
+                rol = (int)rol        // 0 = Root, 1 = Admin, 2 = Employee
+            };
+            var rsp = await _http.PostAsJsonAsync("/api/usb/register", body);
+            return rsp.IsSuccessStatusCode;
         }
 
-        // 1. Registrar el USB en backend
-        public async Task<bool> RegistrarUsbAsync(string serial, string thumbprint)
-        {
-            var usb = new UsbDto { Serial = serial, Thumbprint = thumbprint };
-            var resp = await _http.PostAsJsonAsync("/api/usb", usb);
-            return resp.IsSuccessStatusCode;
-        }
-
-
-        // 2. Crear usuario root-admin
-        public async Task<UsuarioCreated?> CrearUsuarioAsync(UsuarioDto usuarioDto)
-        {
-            var resp = await _http.PostAsJsonAsync("/api/usuarios", usuarioDto);
-            if (!resp.IsSuccessStatusCode) return null;
-            return await resp.Content.ReadFromJsonAsync<UsuarioCreated>();
-        }
-
-        // 3. Asociar USB <-> Usuario
+        /// <summary> POST /api/usb/asignar  (serial ←→ rut) </summary>
         public async Task<bool> AsignarUsbAUsuarioAsync(string serial, string usuarioRut)
         {
-            var vincDto = new VincularUsbDto { Serial = serial, UsuarioRut = usuarioRut };
-            var resp = await _http.PostAsJsonAsync("/api/usb/asignar", vincDto);
-            return resp.IsSuccessStatusCode;
+            var rsp = await _http.PostAsJsonAsync("/api/usb/asignar",
+                                                  new { serial, usuarioRut });
+            return rsp.IsSuccessStatusCode;
         }
 
-        // 4. Probar /api/auth/verify_usb
-        public async Task<bool> ProbarVerifyUsbAsync(string serial)
+        /*────────────────────────────── 2) USUARIOS ─────────────────────────*/
+
+        /// <summary> POST /api/Usuarios </summary>
+        public async Task<UsuarioCreated?> CrearUsuarioAsync(UsuarioDto dto)
         {
-            // Si tu backend espera { serial: ... } u otro payload, ajústalo aquí
-            var resp = await _http.PostAsJsonAsync("/api/auth/verify_usb", new { serial });
-            if (!resp.IsSuccessStatusCode) return false;
-            // Opcional: revisa respuesta body si quieres más info
-            return true;
+            var rsp = await _http.PostAsJsonAsync("/api/Usuarios", dto);
+            return rsp.IsSuccessStatusCode
+                 ? await rsp.Content.ReadFromJsonAsync<UsuarioCreated>()
+                 : null;
         }
 
-        // 5. Probar /api/auth/login (ajusta payload según backend)
-        public async Task<string?> ObtenerChallengeVerifyUsbAsync(string serial, string certPem)
+        /*────────────────────────────── 3) AUTH ─────────────────────────────*/
+
+        /// <summary> POST /api/auth/verify-usb – devuelve el *challenge* Base64 </summary>
+        public async Task<string?> ObtenerChallengeAsync(string serial, string certPem)
         {
-            var payload = new { serial, certPem };
-            var resp = await _http.PostAsJsonAsync("/api/auth/verify-usb", payload);
-            if (resp.IsSuccessStatusCode)
-                return await resp.Content.ReadAsStringAsync();
-            return null;
+            var rsp = await _http.PostAsJsonAsync("/api/auth/verify-usb",
+                                                  new { serial, certPem });
+            return rsp.IsSuccessStatusCode
+                 ? await rsp.Content.ReadAsStringAsync()
+                 : null;
         }
 
-        public async Task<bool> ProbarLoginAsync(string serial, string signatureBase64, string pin, string macAddress)
+        /// <summary>
+        /// POST /api/auth/recover  
+        /// Realiza la prueba de autenticación completa (USB + PIN).  
+        /// <paramref name="agentType"/> → 0 = Root / Admin-USB, 2 = Employee.
+        /// </summary>
+        public async Task<bool> ProbarRecoverAsync(string serial,
+                                                   string signatureB64,
+                                                   string pin,
+                                                   int agentType = 0)
         {
-            var payload = new { serial, signatureBase64, pin, macAddress };
-            var resp = await _http.PostAsJsonAsync("/api/auth/login", payload);
-            return resp.IsSuccessStatusCode;
+            var body = new
+            {
+                serial,
+                signatureBase64 = signatureB64,
+                pin,
+                agentType = agentType
+            };
+            var rsp = await _http.PostAsJsonAsync("/api/auth/recover", body);
+            return rsp.IsSuccessStatusCode;
         }
 
+        /*────────────────────────────── 4) Roll-back (best-effort) ──────────*/
 
-        // 6. ELIMINAR Usuario (por Rut)
-        public async Task<bool> EliminarUsuarioAsync(string rut)
-        {
-            // Ajusta el endpoint según tu API
-            var resp = await _http.DeleteAsync($"/api/usuarios/{rut}");
-            return resp.IsSuccessStatusCode;
-        }
+        public Task<bool> EliminarUsbAsync(string serial)
+            => _http.DeleteAsync($"/api/usb/{serial}")
+                    .ContinueWith(t => t.Result.IsSuccessStatusCode);
 
-        // 7. ELIMINAR USB (por Serial)
-        public async Task<bool> EliminarUsbAsync(string serial)
-        {
-            // Ajusta el endpoint según tu API
-            var resp = await _http.DeleteAsync($"/api/usb/{serial}");
-            return resp.IsSuccessStatusCode;
-        }
+        public Task<bool> EliminarUsuarioAsync(string rut)
+            => _http.DeleteAsync($"/api/Usuarios/{rut}")
+                    .ContinueWith(t => t.Result.IsSuccessStatusCode);
     }
 }

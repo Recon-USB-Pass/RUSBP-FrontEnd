@@ -1,18 +1,15 @@
-﻿using System;
-
-namespace rusbp_bootstrap.Api
+﻿namespace rusbp_bootstrap.Api
 {
-    // Data Transfer Objects (DTOs) para comunicación con el backend
+    public enum UsbRole : byte { Root = 0, Admin = 1, Employee = 2 }
 
-    // DTO para USB
-    public class UsbDto
+    public class UsbRegisterDto
     {
         public string Serial { get; set; } = "";
-        public string Thumbprint { get; set; } = "";
+        public string Cipher { get; set; } = "";
+        public string Tag { get; set; } = "";
+        public UsbRole Rol { get; set; } = UsbRole.Employee;
     }
 
-
-    // DTO para usuario root-admin
     public class UsuarioDto
     {
         public string Rut { get; set; } = "";
@@ -23,28 +20,9 @@ namespace rusbp_bootstrap.Api
         public string Pin { get; set; } = "";
     }
 
-    // DTO para asociación USB <-> Usuario
-    public class VincularUsbDto
-    {
-        public string Serial { get; set; } = "";
-        public string UsuarioRut { get; set; } = "";
-    }
-
-    // DTO para respuesta de creación de usuario
     public class UsuarioCreated
     {
         public int Id { get; set; }
         public string? Msg { get; set; }
     }
-    public class VerifyUsbDto
-    {
-        public string Serial { get; set; } = "";
-    }
-
-    public class LoginDto
-    {
-        public string Serial { get; set; } = "";
-        public string Pin { get; set; } = "";
-    }
-
 }
