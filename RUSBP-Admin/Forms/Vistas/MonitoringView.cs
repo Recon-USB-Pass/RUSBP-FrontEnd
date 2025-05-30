@@ -76,17 +76,25 @@ namespace RUSBP_Admin.Forms.Vistas
         /* ---------------- construcción inicial ---------------- */
         private async Task LoadCardsAsync()
         {
-            var empleados = await _api!.GetEmployeesAsync();
+            var empleados = await _api!.GetUsuariosAsync();
 
             flpCards.SuspendLayout();
             flpCards.Controls.Clear();
 
-            foreach (var emp in empleados)
+            foreach (var usuarioDto in empleados)
             {
-                var card = new UsbCardControl();
-                bool usbOk = false;                     // <<< sin propiedad aún
-                // bool usbOk = emp.UsbConectado;       // descomenta cuando exista
+                // Mapear manualmente de UsuarioDto a Employee
+                var emp = new Employee
+                {
+                    Id = usuarioDto.Id,
+                    Nombre = usuarioDto.Nombre,
+                    Rut = usuarioDto.Rut,
+                    // ...agrega los campos que tu Employee realmente use
+                    // ejemplo: Depto = usuarioDto.Depto, etc.
+                };
 
+                var card = new UsbCardControl();
+                bool usbOk = false;
                 string ping = await MeasurePingAsync(_backendHost);
 
                 card.LoadData(emp, usbOk, ping);
@@ -94,6 +102,7 @@ namespace RUSBP_Admin.Forms.Vistas
 
                 flpCards.Controls.Add(card);
             }
+
 
             flpCards.ResumeLayout();
         }

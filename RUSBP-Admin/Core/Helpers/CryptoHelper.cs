@@ -1,5 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace RUSBP_Admin.Core.Helpers
 {
@@ -115,8 +117,105 @@ namespace RUSBP_Admin.Core.Helpers
         public static string ToBase64(byte[] data) => Convert.ToBase64String(data);
 
         /// <summary>
+        /// Deriva una clave de 256 bits (32 bytes) usando PBKDF2 con SHA256, 100,000 iteraciones.
+        /// Usa la propia pass como salt si no se requiere compatibilidad legacy.
+        /// </summary>
+        public static byte[] DeriveKeyFromPass(string password, int keySizeBytes = 32)
+        {
+            // IMPORTANTE: Para un sistema productivo, usa un SALT aleatorio y guárdalo junto al dato cifrado
+            var salt = Encoding.UTF8.GetBytes(password); // Puedes cambiar esto por un salt fijo o configurable
+            using var kdf = new Rfc2898DeriveBytes(password, salt, 100_000, HashAlgorithmName.SHA256);
+            return kdf.GetBytes(keySizeBytes);
+        }
+
+        /// <summary>
         /// Decodifica base64 a array de bytes.
         /// </summary>
         public static byte[] FromBase64(string b64) => Convert.FromBase64String(b64);
+
+        public static string DecryptAesGcm(byte[] cipher, byte[] tag, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12];
+            byte[] plain = new byte[cipher.Length];
+            aes.Decrypt(nonce, cipher, tag, plain);
+            return System.Text.Encoding.UTF8.GetString(plain);
+        }
+
+
+        public static (byte[] cipher, byte[] tag) EncryptAesGcm(string plainText, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12]; // IV de 12 bytes, puede ser cero si así lo estandarizas (recomendado random para producción)
+            byte[] plainBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
+            byte[] cipherBytes = new byte[plainBytes.Length];
+            byte[] tag = new byte[16];
+            aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
+            // Retorna solo cipher y tag, el nonce es fijo = 0 (sino inclúyelo en el backend)
+            return (cipherBytes, tag);
+        }
+
+        public static string DecryptBtlkIp(string btlkIpPath, string rpRoot)
+        {
+            var encrypted = File.ReadAllBytes(btlkIpPath);
+            var decrypted = DecryptBytes(encrypted, rpRoot);
+            return Encoding.UTF8.GetString(decrypted);
+        }
+
+        public static byte[] DecryptBytes(byte[] cipher, string key)
+        {
+            using var aes = Aes.Create();
+            aes.Key = SHA256.HashData(Encoding.UTF8.GetBytes(key));
+            aes.IV = cipher[..16];
+            using var decryptor = aes.CreateDecryptor();
+            return decryptor.TransformFinalBlock(cipher, 16, cipher.Length - 16);
+        }
+
+        public static bool DecryptDrive(string driveLetter)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "manage-bde.exe",
+                    Arguments = $"-off {driveLetter}:",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var p = Process.Start(psi);
+                p.WaitForExit();
+                return p.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool LockDrive(string driveLetter)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "manage-bde.exe",
+                    Arguments = $"-lock {driveLetter}: -ForceDismount",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var p = Process.Start(psi);
+                p.WaitForExit();
+                return p.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
     }
 }

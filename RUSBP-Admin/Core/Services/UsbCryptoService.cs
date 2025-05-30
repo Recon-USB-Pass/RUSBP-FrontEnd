@@ -101,10 +101,10 @@ namespace RUSBP_Admin.Core.Services
         /* ===============================================================
            Helpers internos
         ===============================================================*/
-        private record UsbInfo(string Serial, List<string> Roots);
+        public record UsbInfo(string Serial, List<string> Roots);
 
         // Devuelve serial + raíces de todos los discos USB conectados
-        private static List<UsbInfo> EnumerateUsbInfos()
+        public static List<UsbInfo> EnumerateUsbInfos()
         {
             var list = new List<UsbInfo>();
 

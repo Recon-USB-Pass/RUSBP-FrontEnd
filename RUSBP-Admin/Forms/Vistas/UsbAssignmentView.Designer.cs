@@ -14,7 +14,7 @@
         {
             components = new System.ComponentModel.Container();
 
-            /* ========== Panel Izquierdo: USB ========== */
+            // Panel Izquierdo: USB
             panelLeft = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -37,7 +37,7 @@
             {
                 Dock = DockStyle.Top,
                 Height = 160,
-                Image = Properties.Resources.usb_on,   // Cambia si tienes un recurso custom
+                Image = Properties.Resources.usb_on,
                 SizeMode = PictureBoxSizeMode.Zoom,
                 Margin = new Padding(0, 20, 0, 20)
             };
@@ -83,7 +83,7 @@
             panelLeft.Controls.Add(picUsb);
             panelLeft.Controls.Add(lblUsbSection);
 
-            /* ========== Panel Central: Configuración USB ========== */
+            // Panel Central: Configuración USB
             _grpInfo = new GroupBox
             {
                 Text = "",
@@ -103,7 +103,6 @@
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
-            /* Subtítulo */
             lblSub = new Label
             {
                 Text = "Información del Empleado",
@@ -114,14 +113,14 @@
                 Margin = new Padding(0, 14, 0, 4)
             };
 
-            /* Entradas de Usuario */
+            // Entradas de Usuario
             txtNombre = MakeInput("Nombre Completo");
             txtRut = MakeInput("RUT");
             txtDepto = MakeInput("Departamento");
             txtMail = MakeInput("Correo Electrónico");
             txtPin = MakeInput("PIN", true);
 
-            /* Rol */
+            // Rol
             lblRol = new Label
             {
                 Text = "Rol",
@@ -134,12 +133,11 @@
             {
                 Width = 190,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Font = new Font("Segoe UI", 11),
-                Items = { "Admin", "User" },
-                SelectedIndex = 1
+                Font = new Font("Segoe UI", 11)
             };
+            cmbRol.Items.AddRange(new object[] { "Admin", "User" });
+            cmbRol.SelectedIndex = 1;
 
-            /* Botón PKI */
             btnGenPki = new Button
             {
                 Text = "Generar claves PKI",
@@ -153,12 +151,34 @@
             };
             btnGenPki.Click += btnGenPki_Click;
 
-            /* Checkboxes e iconos archivos generados */
+            btnEncrypt = new Button
+            {
+                Text = "Cifrar Unidad",
+                Width = 170,
+                Height = 35,
+                BackColor = Color.FromArgb(38, 97, 214),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(6, 10, 0, 4)
+            };
+            btnEncrypt.Click += btnEncrypt_Click;
+
+            progressBar = new ProgressBar
+            {
+                Width = 360,
+                Height = 22,
+                Minimum = 0,
+                Maximum = 100,
+                Value = 0,
+                Margin = new Padding(0, 4, 0, 12),
+                Style = ProgressBarStyle.Continuous
+            };
+
             chkCert = MakeCheck("Certificado Público");
             chkPriv = MakeCheck("Clave Privada Cifrada");
             chkCfg = MakeCheck("Archivos de Configuración");
 
-            /* Botón Final */
             btnCreate = new Button
             {
                 Text = "Crear Ambiente del USB",
@@ -171,12 +191,12 @@
             };
             btnCreate.Click += btnCreate_Click;
 
-            /* TableLayout para ordenar los campos */
+            // TableLayout para ordenar los campos
             var tbl = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 11,
+                RowCount = 15,
                 AutoSize = true,
                 BackColor = Color.Transparent
             };
@@ -189,6 +209,10 @@
 
             tbl.Controls.Add(lblSub, 0, ++row);
             tbl.SetColumnSpan(lblSub, 2);
+
+            tbl.Controls.Add(btnEncrypt, 1, ++row);
+            tbl.Controls.Add(progressBar, 0, ++row);
+            tbl.SetColumnSpan(progressBar, 2);
 
             tbl.Controls.Add(txtNombre, 0, ++row);
             tbl.SetColumnSpan(txtNombre, 2);
@@ -218,11 +242,11 @@
             _grpInfo.Controls.Add(tbl);
             _grpInfo.Controls.Add(btnCreate);
 
-            /* ========== Panel Derecho: Logs con TextBox ========== */
+            // Panel Derecho: Logs
             grpLogs = new GroupBox
             {
                 Text = "Logs del Sistema",
-                Dock = DockStyle.Fill, // Para que crezca
+                Dock = DockStyle.Fill,
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 14, FontStyle.Bold)
             };
@@ -239,7 +263,7 @@
             };
             grpLogs.Controls.Add(logsTextBox);
 
-            /* ========== Layout Responsivo: TableLayoutPanel ========== */
+            // Layout responsivo
             var rootTable = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -258,11 +282,11 @@
             Controls.Add(rootTable);
             Size = new Size(1152, 768);
 
-            /* deshabilitar formulario hasta detectar USB */
+            // deshabilitar formulario hasta detectar USB
             ToggleForm(false);
         }
 
-        /* -------- Helpers para UI -------- */
+        // Helpers para UI (igual que en tu código principal)
         private TextBox MakeInput(string placeholder, bool isPassword = false)
         {
             var tb = new TextBox
@@ -286,12 +310,12 @@
                 Margin = new Padding(0, 6, 0, 6),
                 AutoSize = true,
                 Checked = false,
-                Enabled = false // sólo marcan el avance del proceso
+                Enabled = false
             };
         }
         #endregion
 
-        /* ------ Controles del formulario ------ */
+        // Controles del formulario
         private System.ComponentModel.IContainer components = null!;
         private Panel panelLeft;
         private Label lblUsbSection;
@@ -313,6 +337,8 @@
         private Button btnGenPki;
         private Button btnCreate;
         private CheckBox chkCert, chkPriv, chkCfg;
+        private Button btnEncrypt;
+        private ProgressBar progressBar;
 
         private GroupBox grpLogs;
         private TextBox logsTextBox;

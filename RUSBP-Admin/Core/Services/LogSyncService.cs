@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
-
+using RUSBP_Admin.Core.Models;
+using RUSBP_Admin.Core.Models.Dtos;
 
 namespace RUSBP_Admin.Core.Services
 {
@@ -46,22 +47,29 @@ namespace RUSBP_Admin.Core.Services
             {
                 return; // Si no se puede leer, ignora el archivo
             }
+
             if (logs == null || logs.Count == 0) return;
 
-            // Filtra eventos ya sincronizados (si quieres más control, implementa persistencia en disco de IDs ya enviados)
+            // Filtra eventos nuevos no sincronizados aún
             var nuevos = logs.Where(ev => !_alreadySynced.Contains(ev.EventId)).ToList();
             if (nuevos.Count == 0) return;
 
-            var ok = await _api.SendLogsAsync(nuevos, ct);
+            // Mapear a DTO
+            var dtoList = nuevos.Select(ev => new LogEventDto(
+                ev.EventId,
+                ev.UserRut,
+                ev.UsbSerial,
+                ev.EventType,
+                ev.Ip,
+                ev.Mac,
+                ev.Timestamp
+            )).ToList();
+
+            var ok = await _api.SendLogsAsync(dtoList, ct);
             if (ok)
             {
                 foreach (var ev in nuevos)
                     _alreadySynced.Add(ev.EventId);
-
-                // (Opcional: Borra o marca como sincronizados los eventos)
-                // Si quieres, puedes limpiar eventos ya sincronizados del archivo local
-                // logs.RemoveAll(ev => _alreadySynced.Contains(ev.EventId));
-                // await File.WriteAllTextAsync(logJsonPath, JsonSerializer.Serialize(logs, new JsonSerializerOptions { WriteIndented = true }), ct);
             }
         }
 
