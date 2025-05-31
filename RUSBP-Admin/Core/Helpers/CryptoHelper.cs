@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -6,90 +8,101 @@ using System.Text;
 namespace RUSBP_Admin.Core.Helpers
 {
     /// <summary>
-    /// Ayuda para operaciones criptográficas: firma, cifrado y descifrado con PKI.
+    /// Ayuda para operaciones criptográficas: firma, cifrado y descifrado con PKI y archivos de configuración (.btlk, .btlk-ip).
     /// </summary>
     public static class CryptoHelper
     {
-        // --- CIFRADO Y DESCIFRADO ASIMÉTRICO (RSA) ---
+        // --- DESCIFRADO .btlk y .btlk-ip (AES-GCM) ---
 
         /// <summary>
-        /// Cifra los datos usando la clave pública de un certificado X.509 (RSA).
+        /// Desencripta un archivo tipo .btlk o .btlk-ip (AES-GCM, nonce de 12 bytes en cero, tag de 16 bytes al inicio).
         /// </summary>
-        public static byte[] EncryptWithCert(byte[] data, X509Certificate2 publicCert)
+        public static string DecryptBtlk(string filePath, string recoveryPass)
         {
-            using var rsa = publicCert.GetRSAPublicKey();
-            return rsa.Encrypt(data, RSAEncryptionPadding.OaepSHA256);
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+            if (fileBytes.Length < 16)
+                throw new Exception(".btlk(.ip) corrupto o muy corto.");
+
+            byte[] tag = new byte[16];
+            Buffer.BlockCopy(fileBytes, 0, tag, 0, 16);
+            byte[] cipher = new byte[fileBytes.Length - 16];
+            Buffer.BlockCopy(fileBytes, 16, cipher, 0, cipher.Length);
+
+            byte[] key = DeriveKeyFromPass(recoveryPass);
+            byte[] nonce = new byte[12]; // 12 bytes a cero
+
+            using var aes = new AesGcm(key);
+            byte[] plaintext = new byte[cipher.Length];
+            aes.Decrypt(nonce, cipher, tag, plaintext);
+
+            return Encoding.UTF8.GetString(plaintext);
         }
 
         /// <summary>
-        /// Descifra los datos usando la clave privada del certificado (RSA).
+        /// Desencripta el archivo .btlk-ip para extraer la IP cifrada (igual que DecryptBtlk).
         /// </summary>
-        public static byte[] DecryptWithCert(byte[] encrypted, X509Certificate2 privateCert)
-        {
-            using var rsa = privateCert.GetRSAPrivateKey();
-            return rsa.Decrypt(encrypted, RSAEncryptionPadding.OaepSHA256);
-        }
-
-        // --- FIRMA Y VERIFICACIÓN DIGITAL (RSA) ---
+        public static string DecryptBtlkIp(string filePath, string recoveryPass)
+            => DecryptBtlk(filePath, recoveryPass);
 
         /// <summary>
-        /// Firma datos usando el certificado y clave privada del agente/USB.
+        /// Deriva una clave AES-256 de 32 bytes a partir de la password (SHA256).
         /// </summary>
+        public static byte[] DeriveKeyFromPass(string password)
+        {
+            using var sha256 = SHA256.Create();
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        }
+
+        // --- CIFRADO AES-GCM para compatibilidad si lo necesitas en el futuro ---
+
+        /// <summary>
+        /// Cifra texto en AES-GCM con clave derivada. Devuelve (cipher, tag).
+        /// </summary>
+        public static (byte[] cipher, byte[] tag) EncryptAesGcm(string plainText, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12]; // Fijo a cero para compatibilidad
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+            byte[] cipherBytes = new byte[plainBytes.Length];
+            byte[] tag = new byte[16];
+            aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
+            return (cipherBytes, tag);
+        }
+
+        /// <summary>
+        /// Descifra bytes usando AES-GCM.
+        /// </summary>
+        public static string DecryptAesGcm(byte[] cipher, byte[] tag, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12];
+            byte[] plain = new byte[cipher.Length];
+            aes.Decrypt(nonce, cipher, tag, plain);
+            return Encoding.UTF8.GetString(plain);
+        }
+
+
+        // --- ÚTILES DE TEXTO ---
+
+        public static string ToBase64(byte[] data) => Convert.ToBase64String(data);
+        public static byte[] FromBase64(string b64) => Convert.FromBase64String(b64);
+
+        // --- FIRMA DIGITAL Y PKI (por si mantienes validación de certificados, no borres estas) ---
+
         public static byte[] SignData(byte[] data, X509Certificate2 signerCert)
         {
             using var rsa = signerCert.GetRSAPrivateKey();
             return rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
 
-        /// <summary>
-        /// Verifica la firma usando el certificado público.
-        /// </summary>
         public static bool VerifySignature(byte[] data, byte[] signature, X509Certificate2 cert)
         {
             using var rsa = cert.GetRSAPublicKey();
             return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
 
-        // --- CIFRADO/DECIFRADO SIMÉTRICO (AES) ---
+        // --- CARGA DE CERTIFICADOS X.509 DESDE PEM O PFX ---
 
-        /// <summary>
-        /// Cifra datos usando AES-256 en CBC y un IV aleatorio. Devuelve IV + ciphertext.
-        /// </summary>
-        public static byte[] EncryptAES(byte[] data, byte[] key)
-        {
-            using var aes = Aes.Create();
-            aes.Key = key;
-            aes.GenerateIV();
-            using var ms = new MemoryStream();
-            ms.Write(aes.IV, 0, aes.IV.Length);
-            using var cs = new CryptoStream(ms, aes.CreateEncryptor(), CryptoStreamMode.Write);
-            cs.Write(data, 0, data.Length);
-            cs.FlushFinalBlock();
-            return ms.ToArray();
-        }
-
-        /// <summary>
-        /// Descifra datos cifrados por EncryptAES.
-        /// </summary>
-        public static byte[] DecryptAES(byte[] encrypted, byte[] key)
-        {
-            using var aes = Aes.Create();
-            aes.Key = key;
-            byte[] iv = new byte[aes.BlockSize / 8];
-            Array.Copy(encrypted, 0, iv, 0, iv.Length);
-            aes.IV = iv;
-            using var ms = new MemoryStream(encrypted, iv.Length, encrypted.Length - iv.Length);
-            using var cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Read);
-            using var reader = new MemoryStream();
-            cs.CopyTo(reader);
-            return reader.ToArray();
-        }
-
-        // --- CARGA DE CERTIFICADOS ---
-
-        /// <summary>
-        /// Carga un certificado X.509 desde archivo PEM o PFX.
-        /// </summary>
         public static X509Certificate2 LoadCertificate(string path, string? password = null)
         {
             if (path.EndsWith(".pfx", StringComparison.OrdinalIgnoreCase))
@@ -101,106 +114,19 @@ namespace RUSBP_Admin.Core.Helpers
             throw new NotSupportedException("Solo .pfx y .pem soportados");
         }
 
-        /// <summary>
-        /// Convierte un string PEM a X509Certificate2.
-        /// </summary>
         public static X509Certificate2 FromPemString(string pem)
         {
             return X509Certificate2.CreateFromPem(pem);
         }
 
-        // --- ÚTILES DE TEXTO ---
-
-        /// <summary>
-        /// Codifica un array de bytes como base64 string.
-        /// </summary>
-        public static string ToBase64(byte[] data) => Convert.ToBase64String(data);
-
-        /// <summary>
-        /// Deriva una clave de 256 bits (32 bytes) usando PBKDF2 con SHA256, 100,000 iteraciones.
-        /// Usa la propia pass como salt si no se requiere compatibilidad legacy.
-        /// </summary>
-        public static byte[] DeriveKeyFromPass(string password, int keySizeBytes = 32)
-        {
-            // IMPORTANTE: Para un sistema productivo, usa un SALT aleatorio y guárdalo junto al dato cifrado
-            var salt = Encoding.UTF8.GetBytes(password); // Puedes cambiar esto por un salt fijo o configurable
-            using var kdf = new Rfc2898DeriveBytes(password, salt, 100_000, HashAlgorithmName.SHA256);
-            return kdf.GetBytes(keySizeBytes);
-        }
-
-        /// <summary>
-        /// Decodifica base64 a array de bytes.
-        /// </summary>
-        public static byte[] FromBase64(string b64) => Convert.FromBase64String(b64);
-
-        public static string DecryptAesGcm(byte[] cipher, byte[] tag, byte[] key)
-        {
-            using var aes = new AesGcm(key);
-            byte[] nonce = new byte[12];
-            byte[] plain = new byte[cipher.Length];
-            aes.Decrypt(nonce, cipher, tag, plain);
-            return System.Text.Encoding.UTF8.GetString(plain);
-        }
-
-
-        public static (byte[] cipher, byte[] tag) EncryptAesGcm(string plainText, byte[] key)
-        {
-            using var aes = new AesGcm(key);
-            byte[] nonce = new byte[12]; // IV de 12 bytes, puede ser cero si así lo estandarizas (recomendado random para producción)
-            byte[] plainBytes = System.Text.Encoding.UTF8.GetBytes(plainText);
-            byte[] cipherBytes = new byte[plainBytes.Length];
-            byte[] tag = new byte[16];
-            aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
-            // Retorna solo cipher y tag, el nonce es fijo = 0 (sino inclúyelo en el backend)
-            return (cipherBytes, tag);
-        }
-
-        public static string DecryptBtlkIp(string btlkIpPath, string rpRoot)
-        {
-            var encrypted = File.ReadAllBytes(btlkIpPath);
-            var decrypted = DecryptBytes(encrypted, rpRoot);
-            return Encoding.UTF8.GetString(decrypted);
-        }
-
-        public static byte[] DecryptBytes(byte[] cipher, string key)
-        {
-            using var aes = Aes.Create();
-            aes.Key = SHA256.HashData(Encoding.UTF8.GetBytes(key));
-            aes.IV = cipher[..16];
-            using var decryptor = aes.CreateDecryptor();
-            return decryptor.TransformFinalBlock(cipher, 16, cipher.Length - 16);
-        }
-
-        public static bool DecryptDrive(string driveLetter)
-        {
-            try
-            {
-                var psi = new ProcessStartInfo
-                {
-                    FileName = "manage-bde.exe",
-                    Arguments = $"-off {driveLetter}:",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-                using var p = Process.Start(psi);
-                p.WaitForExit();
-                return p.ExitCode == 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
+        // --- GESTIÓN DE BLOQUEO/ DESBLOQUEO DE UNIDADES CON BITLOCKER ---
         public static bool LockDrive(string driveLetter)
         {
             try
             {
                 var psi = new ProcessStartInfo
                 {
-                    FileName = "manage-bde.exe",
+                    FileName = "manage-bde",
                     Arguments = $"-lock {driveLetter}: -ForceDismount",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
@@ -217,5 +143,65 @@ namespace RUSBP_Admin.Core.Helpers
             }
         }
 
+        public static bool DecryptDrive(string driveLetter)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "manage-bde",
+                    Arguments = $"-off {driveLetter}:",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                using var p = Process.Start(psi);
+                p.WaitForExit();
+                return p.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        public static bool UnlockBitLockerWithRecoveryPass(string driveLetter, string recoveryPassword)
+        {
+            try
+            {
+                // Normalizar la letra (asegúrate que sea "G:")
+                string normalized = driveLetter.Trim().TrimEnd('\\').TrimEnd(':') + ":";
+                string args = $"-unlock {normalized} -RecoveryPassword {recoveryPassword}";
+                string cmd = $"manage-bde {args}";
+
+                Console.WriteLine("BITLOCKER CMD: " + cmd);
+                Debug.WriteLine("BITLOCKER CMD: " + cmd);
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "manage-bde", // NO .exe
+                    Arguments = args,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    Verb = "runas" // Garantiza que pida permisos de admin si es necesario
+                };
+                using var p = Process.Start(psi);
+                p.WaitForExit();
+
+                Console.WriteLine("STDOUT: " + p.StandardOutput.ReadToEnd());
+                Console.WriteLine("STDERR: " + p.StandardError.ReadToEnd());
+                Debug.WriteLine("ExitCode: " + p.ExitCode);
+
+                return p.ExitCode == 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Excepción al ejecutar manage-bde: " + ex);
+                Debug.WriteLine("Excepción al ejecutar manage-bde: " + ex);
+                return false;
+            }
+        }
     }
 }

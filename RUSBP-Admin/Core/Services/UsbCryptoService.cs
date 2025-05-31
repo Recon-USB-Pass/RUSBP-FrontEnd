@@ -18,7 +18,7 @@ namespace RUSBP_Admin.Core.Services
 {
     public class UsbCryptoService
     {
-        public string? MountedRoot { get; private set; }
+        public string? MountedRoot { get; set; }
         public string? Serial { get; private set; }
 
         // Rutas relativas dentro del pendrive
@@ -34,28 +34,39 @@ namespace RUSBP_Admin.Core.Services
             {
                 foreach (var root in info.Roots)
                 {
-                    string certPath = Path.Combine(root, CERT_REL);
-                    string keyPath = Path.Combine(root, KEY_REL);
+                    var driveLetter = root.Substring(0, 2);
+                    var drive = DriveInfo.GetDrives().FirstOrDefault(d => d.Name.StartsWith(driveLetter));
 
-                    LogDebug($"Inspeccionando: {root}");
-                    if (File.Exists(certPath)) LogDebug(" → cert.crt encontrado");
-                    if (File.Exists(keyPath)) LogDebug(" → priv.key encontrado");
-
-                    if (File.Exists(certPath) && File.Exists(keyPath))
+                    // 🔒 Si la unidad no está lista, pide al usuario desbloquearla
+                    if (drive == null || !drive.IsReady)
                     {
-                        MountedRoot = root;
-                        Serial = info.Serial.ToUpperInvariant();
-                        LogDebug($"USB válido ► Serial={Serial}  Root={MountedRoot}");
-                        return true;
+                        MessageBox.Show(
+                            $"La unidad {driveLetter} está bloqueada por BitLocker. Debes desbloquearla antes de continuar.",
+                            "Unidad Bloqueada", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        continue;
                     }
+
+                    string pkiDir = Path.Combine(root, "pki");
+                    if (!Directory.Exists(pkiDir) || !File.Exists(Path.Combine(pkiDir, "cert.crt")) || !File.Exists(Path.Combine(pkiDir, "priv.key")))
+                    {
+                        MessageBox.Show(
+                            "USB conectado, pero no contiene carpeta PKI (cert.crt / priv.key).",
+                            "Falta PKI", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        continue;
+                    }
+
+                    // Si llega aquí, todo está bien:
+                    Serial = info.Serial.ToUpperInvariant();
+                    MountedRoot = root;
+                    //IsRoot = true;
+                    return true;
                 }
             }
-
-            MountedRoot = null;
-            Serial = null;
-            MessageBox.Show("USB conectado, pero no contiene carpeta PKI (cert.crt / priv.key).");
+            Serial = MountedRoot = null;
+            //IsRoot = false;
             return false;
         }
+
 
         /* ===============================================================
            2. Lee el certificado PEM para enviarlo al backend
@@ -142,6 +153,14 @@ namespace RUSBP_Admin.Core.Services
             {
                 /* Ignora errores de logging */
             }
+        }
+        public static string SignWithKey(string privateKeyPem, string challengeB64)
+        {
+            byte[] challenge = Convert.FromBase64String(challengeB64);
+            using var rsa = System.Security.Cryptography.RSA.Create();
+            rsa.ImportFromPem(privateKeyPem);
+            byte[] sig = rsa.SignData(challenge, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
+            return Convert.ToBase64String(sig);
         }
     }
 }

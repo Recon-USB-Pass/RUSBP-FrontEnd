@@ -17,7 +17,7 @@ namespace RUSBP_Admin.Core.Helpers
             string drive = mountPoint.TrimEnd('\\', ':') + ":";
 
             // Habilita BitLocker con protector de recuperación
-            var enable = RunCmd("manage-bde.exe", $"-on {drive} -RecoveryPassword -UsedSpaceOnly");
+            var enable = RunCmd("manage-bde", $"-on {drive} -RecoveryPassword -UsedSpaceOnly");//manage-bde.exe
             if (!enable.Success)
                 throw new Exception("Falló el comando de cifrado BitLocker:\n" + enable.Output);
 
@@ -31,7 +31,7 @@ namespace RUSBP_Admin.Core.Helpers
             }
 
             // Obtener RecoveryPassword
-            var result = RunCmd("manage-bde.exe", $"-protectors {drive} -get");
+            var result = RunCmd("manage-bde", $"-protectors {drive} -get");//manage-bde.exe
             string rp = ExtraerRecoveryPassword(result.Output);
             if (string.IsNullOrWhiteSpace(rp))
                 throw new Exception("No se pudo extraer RecoveryPassword.");
@@ -44,7 +44,7 @@ namespace RUSBP_Admin.Core.Helpers
         /// </summary>
         public static int GetEncryptionPercentage(string drive)
         {
-            var result = RunCmd("manage-bde.exe", $"-status {drive}");
+            var result = RunCmd("manage-bde", $"-status {drive}");//manage-bde.exe
             var match = Regex.Match(result.Output, @"Encryption Percentage:\s*(\d+)%");
             if (match.Success && int.TryParse(match.Groups[1].Value, out int percent))
                 return percent;

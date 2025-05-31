@@ -9,26 +9,58 @@ using System.Windows.Forms;
 
 namespace RUSBP_Admin.Core.Services
 {
+    public class UsbRecoverResponse
+    {
+        public string? Cipher { get; set; }
+        public string? Tag { get; set; }
+        public int Rol { get; set; }
+    }
+
+
     public class ApiClient
     {
         private readonly HttpClient _http;
 
-        public ApiClient(string baseUrl)
+        public ApiClient(string backendIp)
         {
+            backendIp = backendIp?.Trim() ?? "";
+
+            // Si viene sin http, lo agrega
+            string url = backendIp.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                ? backendIp
+                : $"https://{backendIp}";
+
+            // Si NO hay puerto explícito, agrega :8443
+            var uriBuilder = new UriBuilder(url);
+            if (uriBuilder.Port == 443 || uriBuilder.Port == 80) // default port => no puerto explícito
+            {
+                uriBuilder.Port = 8443;
+            }
+
+            // Forzar slash final
+            if (!uriBuilder.Path.EndsWith("/"))
+                uriBuilder.Path += "/";
+
             var handler = new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = (_, __, ___, ____) => true
+                ServerCertificateCustomValidationCallback = (_, __, ___, ____) => true // Solo para testing
             };
 
-            if (!baseUrl.EndsWith('/')) baseUrl += "/";
-            _http = new HttpClient(handler)
+            try
             {
-                BaseAddress = new Uri(baseUrl),
-                Timeout = TimeSpan.FromSeconds(20)
-            };
+                _http = new HttpClient(handler)
+                {
+                    BaseAddress = uriBuilder.Uri,
+                    Timeout = TimeSpan.FromSeconds(20)
+                };
+            }
+            catch (UriFormatException ex)
+            {
+                MessageBox.Show($"URL inválida para el backend: '{uriBuilder.Uri}'\n{ex.Message}",
+                    "Error URL Backend", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                throw;
+            }
         }
-
-        public ApiClient(HttpClient http) => _http = http;
 
         private string U(string relative) => relative.StartsWith('/') ? relative : "/" + relative;
 
@@ -83,14 +115,51 @@ namespace RUSBP_Admin.Core.Services
             return bool.TryParse(str, out var b) && b;
         }
 
-        // ──────────────── C: Autenticación ────────────────
+        // ──────────────── C: Recuperación de RecoveryPassword (DESBLOQUEO USB ROOT ADMIN) ────────────────
+
+        public async Task<UsbRecoverResponse?> RecoverUsbAsync(string serial, int agentType, CancellationToken ct = default)
+        {
+            var dto = new { serial, agentType };
+            string payload = JsonSerializer.Serialize(dto);
+            Console.WriteLine($"[DEBUG-API] usb/recover payload: {payload}");
+
+            var resp = await _http.PostAsJsonAsync(U("api/usb/recover"), dto, ct);
+            string content = await resp.Content.ReadAsStringAsync(ct);
+            Console.WriteLine($"[DEBUG-API] usb/recover response: {content}");
+
+            if (!resp.IsSuccessStatusCode)
+                return null;
+
+            try
+            {
+                // Si el body no es un JSON válido, regresa null
+                return JsonSerializer.Deserialize<UsbRecoverResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // ──────────────── C.1: Auth para agentes (challenge-response) ────────────────
 
         public async Task<string?> VerifyUsbAsync(string serial, string certPem, CancellationToken ct = default)
         {
-            var dto = new { serial, certPem };
+            var dto = new { serial, certPem }; // El backend espera estas propiedades exactas
+            string payload = System.Text.Json.JsonSerializer.Serialize(dto);
+            Console.WriteLine($"[DEBUG-API] verify-usb payload: {payload}");
+
             var resp = await _http.PostAsJsonAsync(U("api/auth/verify-usb"), dto, ct);
-            return resp.IsSuccessStatusCode ? await resp.Content.ReadAsStringAsync(ct) : null;
+            if (!resp.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[DEBUG-API] verify-usb resp: {resp.StatusCode}, content: {await resp.Content.ReadAsStringAsync()}");
+                return null;
+            }
+            string content = await resp.Content.ReadAsStringAsync(ct);
+            Console.WriteLine($"[DEBUG-API] verify-usb response: {content}");
+            return content;
         }
+
 
         public async Task<RecoverResponseDto?> RecoverAsync(RecoverDto dto, CancellationToken ct = default)
         {
@@ -103,10 +172,30 @@ namespace RUSBP_Admin.Core.Services
         public async Task<(UsuarioDto? usuario, string? error)> LoginUsbAsync(string serial, string sig, string pin, string mac)
         {
             var dto = new RecoverDto(serial, sig, pin, 1, mac);
+            var json = JsonSerializer.Serialize(dto);
+            System.Diagnostics.Debug.WriteLine("[DEBUG] Payload recover: " + json);
+
             var res = await RecoverAsync(dto);
             return res != null
                 ? (res.Usuario, null)
                 : (null, "PIN incorrecto o error de autenticación.");
+        }
+
+        public async Task<(bool ok, string? msg)> LoginAsync(string serial, string sig, string pin, string mac)
+        {
+            var json = new
+            {
+                serial,
+                signatureBase64 = sig,
+                pin,
+                macAddress = mac
+            };
+            var resp = await _http.PostAsJsonAsync("api/auth/recover", json);
+            string body = await resp.Content.ReadAsStringAsync();
+            if (resp.IsSuccessStatusCode)
+                return (true, null);
+
+            return (false, body.Length > 200 ? resp.StatusCode.ToString() : body);
         }
 
         // ──────────────── D: Logs ────────────────

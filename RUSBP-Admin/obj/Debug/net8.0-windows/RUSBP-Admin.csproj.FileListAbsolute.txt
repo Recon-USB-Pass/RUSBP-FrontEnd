@@ -98,3 +98,4 @@ C:\Users\RUSBP\Desktop\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\refin
 C:\Users\RUSBP\Desktop\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP-Admin.pdb
 C:\Users\RUSBP\Desktop\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP-Admin.genruntimeconfig.cache
 C:\Users\RUSBP\Desktop\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\ref\RUSBP-Admin.dll
+C:\Users\RUSBP\Desktop\RUSBP-FrontEnd\RUSBP-Admin\obj\Debug\net8.0-windows\RUSBP_Admin.Core.Helpers.WaitForRootUsbForm.resources

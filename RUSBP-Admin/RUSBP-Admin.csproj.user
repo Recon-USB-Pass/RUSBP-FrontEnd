@@ -7,6 +7,9 @@
     <Compile Update="Forms\MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Forms\SelectRootDrive.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="Forms\Shared\EmployeeCardControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
