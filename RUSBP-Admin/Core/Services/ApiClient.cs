@@ -9,12 +9,11 @@ using System.Windows.Forms;
 
 namespace RUSBP_Admin.Core.Services
 {
-    public class UsbRecoverResponse
-    {
-        public string? Cipher { get; set; }
-        public string? Tag { get; set; }
-        public int Rol { get; set; }
-    }
+    
+
+    public record RecoverUsbResponse(bool Ok, string? Err,
+                                         string CipherB64, string TagB64);
+
 
 
     public class ApiClient
@@ -117,28 +116,21 @@ namespace RUSBP_Admin.Core.Services
 
         // ──────────────── C: Recuperación de RecoveryPassword (DESBLOQUEO USB ROOT ADMIN) ────────────────
 
-        public async Task<UsbRecoverResponse?> RecoverUsbAsync(string serial, int agentType, CancellationToken ct = default)
+        public async Task<RecoverUsbResponse> RecoverUsbAsync(string serial, int agentType)
         {
-            var dto = new { serial, agentType };
-            string payload = JsonSerializer.Serialize(dto);
-            Console.WriteLine($"[DEBUG-API] usb/recover payload: {payload}");
-
-            var resp = await _http.PostAsJsonAsync(U("api/usb/recover"), dto, ct);
-            string content = await resp.Content.ReadAsStringAsync(ct);
-            Console.WriteLine($"[DEBUG-API] usb/recover response: {content}");
+            var body = new { serial, agentType };
+            var resp = await _http.PostAsJsonAsync("api/usb/recover", body);
 
             if (!resp.IsSuccessStatusCode)
-                return null;
+            {
+                string err = await resp.Content.ReadAsStringAsync();
+                return new RecoverUsbResponse(false, err, "", "");
+            }
 
-            try
-            {
-                // Si el body no es un JSON válido, regresa null
-                return JsonSerializer.Deserialize<UsbRecoverResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch
-            {
-                return null;
-            }
+            var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            string cipherB64 = json!.GetProperty("cipher").GetString()!;
+            string tagB64 = json.GetProperty("tag").GetString()!;
+            return new RecoverUsbResponse(true, null, cipherB64, tagB64);
         }
 
         // ──────────────── C.1: Auth para agentes (challenge-response) ────────────────

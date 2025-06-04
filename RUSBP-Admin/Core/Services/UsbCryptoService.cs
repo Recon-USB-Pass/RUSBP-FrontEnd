@@ -11,6 +11,8 @@
 //   el endpoint /api/auth/verify-usb  (LoginForm.BeginVerificationAsync).
 // -----------------------------------------------------------------------------
 
+using RUSBP_Admin.Forms;
+using System.Diagnostics;
 using System.Management;
 using System.Security.Cryptography;
 
@@ -20,6 +22,7 @@ namespace RUSBP_Admin.Core.Services
     {
         public string? MountedRoot { get; set; }
         public string? Serial { get; private set; }
+        public bool IsRoot { get; private set; }
 
         // Rutas relativas dentro del pendrive
         private const string CERT_REL = @"pki\cert.crt";
@@ -34,36 +37,52 @@ namespace RUSBP_Admin.Core.Services
             {
                 foreach (var root in info.Roots)
                 {
-                    var driveLetter = root.Substring(0, 2);
-                    var drive = DriveInfo.GetDrives().FirstOrDefault(d => d.Name.StartsWith(driveLetter));
-
-                    // 🔒 Si la unidad no está lista, pide al usuario desbloquearla
-                    if (drive == null || !drive.IsReady)
-                    {
-                        MessageBox.Show(
-                            $"La unidad {driveLetter} está bloqueada por BitLocker. Debes desbloquearla antes de continuar.",
-                            "Unidad Bloqueada", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        continue;
-                    }
-
                     string pkiDir = Path.Combine(root, "pki");
-                    if (!Directory.Exists(pkiDir) || !File.Exists(Path.Combine(pkiDir, "cert.crt")) || !File.Exists(Path.Combine(pkiDir, "priv.key")))
+
+                    /* ───── 1. ¿La unidad aún está cifrada? ───── */
+                    if (!Directory.Exists(pkiDir))
                     {
-                        MessageBox.Show(
-                            "USB conectado, pero no contiene carpeta PKI (cert.crt / priv.key).",
-                            "Falta PKI", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        continue;
+                        string driveLetter = root[..2]; // “F:”
+
+                        /* 1-a) Si YA tenemos la RP_root global => intentar unlock silencioso */
+                        if (!string.IsNullOrWhiteSpace(RpRootGlobal) &&
+                            UnlockBitLockerWithRecoveryPass(driveLetter, RpRootGlobal))
+                        {
+                            // damos tiempo a Windows a montar el volumen
+                            Thread.Sleep(2500);
+                            if (!Directory.Exists(pkiDir)) continue;
+                        }
+                        /* 1-b) Solo si no hay RpRootGlobal -> pedirla al usuario */
+                        else
+                        {
+                            if (!Prompt.ForRecoveryPassword(out string rp))
+                                continue;                               // canceló
+
+                            RpRootGlobal = rp;                         // cache global
+                            if (!UnlockBitLockerWithRecoveryPass(driveLetter, rp))
+                            {
+                                MessageBox.Show("No se pudo desbloquear el USB.",
+                                    "Error BitLocker", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                continue;
+                            }
+                            Thread.Sleep(2500);
+                            if (!Directory.Exists(pkiDir)) continue;
+                        }
                     }
 
-                    // Si llega aquí, todo está bien:
+                    /* ───── 2. Estructura OK: asignar campos y salir ───── */
+                    string sysDir = Path.Combine(root, "rusbp.sys");
+                    bool hasRoot = File.Exists(Path.Combine(sysDir, ".btlk")) &&
+                                   File.Exists(Path.Combine(sysDir, ".btlk-agente"));
+
                     Serial = info.Serial.ToUpperInvariant();
                     MountedRoot = root;
-                    //IsRoot = true;
+                    IsRoot = hasRoot;
                     return true;
                 }
             }
             Serial = MountedRoot = null;
-            //IsRoot = false;
+            IsRoot = false;
             return false;
         }
 
@@ -162,6 +181,49 @@ namespace RUSBP_Admin.Core.Services
             byte[] sig = rsa.SignData(challenge, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
             return Convert.ToBase64String(sig);
         }
+        public static bool UnlockBitLockerWithRecoveryPass(string driveLetter, string recoveryPass)
+        {
+            try
+            {
+                string normalized = driveLetter.Trim().TrimEnd('\\').TrimEnd(':') + ":";
+                string args = $"-unlock {normalized} -RecoveryPassword {recoveryPass}";
+
+                var proc = new Process();
+                proc.StartInfo.FileName = "manage-bde.exe";
+                proc.StartInfo.Arguments = args;
+                proc.StartInfo.CreateNoWindow = true;
+                proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+
+                proc.Start();
+                string output = proc.StandardOutput.ReadToEnd();
+                string error = proc.StandardError.ReadToEnd();
+                proc.WaitForExit();
+
+                // Considera éxito si ya está desbloqueado (output o error)
+                if (proc.ExitCode == 0 ||
+                    output.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
+                    error.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
+                    output.Contains("already unlocked", StringComparison.OrdinalIgnoreCase) ||
+                    error.Contains("already unlocked", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // Solo muestra error real
+                MessageBox.Show($"Error al desbloquear BitLocker:\n{output}\n{error}", "BitLocker Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Excepción al desbloquear BitLocker:\n{ex}", "BitLocker Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
+            }
+        }
+        public static string? RpRootGlobal { get; set; }
+
     }
 }
 

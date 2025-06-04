@@ -203,5 +203,17 @@ namespace RUSBP_Admin.Core.Helpers
                 return false;
             }
         }
+        public static string DecryptToString(byte[] tagCipher, string pass)
+        {
+            const int TAG_LEN = 16;
+            byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes(pass));
+            byte[] tag = tagCipher[..TAG_LEN];
+            byte[] cipher = tagCipher[TAG_LEN..];
+            byte[] plain = new byte[cipher.Length];
+
+            using var gcm = new AesGcm(key);
+            gcm.Decrypt(new byte[12], cipher, tag, plain);
+            return Encoding.UTF8.GetString(plain);
+        }
     }
 }
