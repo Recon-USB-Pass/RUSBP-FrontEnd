@@ -82,6 +82,11 @@ namespace RUSBP_Admin.Core.Models.Dtos
         public string? Rol { get; set; }
         public string PinHash { get; set; } = ""; // No mostrar en UI
         public List<DispositivoUsbDto> Usbs { get; set; } = new();
+        public string Serial { get; set; } = "";
+        public string Area { get; set; } = "";
+        public string Role { get; set; } = "";
+        public int StoragePercent { get; set; }     // Ej: 0-100 para barra de almacenamiento
+        public string PkiStatus { get; set; } = ""; // Ej: "Al Día", "Vencido", etc.
     }
 
     /// <summary>

@@ -301,10 +301,26 @@ namespace RUSBP_Admin
                 var (ok, err) = await _api.LoginAsync(_serial, sig, _txtPin.Text.Trim(), mac);
                 if (ok)
                 {
+                    // === Nuevo: Reporta acceso ===
+                    string ipLocal = ObtenerIpLocal();
+                    string pcName = Environment.MachineName;
+                    string rut = _userRut ?? "root";  // Usa el rut real, ajústalo si tu flujo ya lo tiene (puedes recuperarlo del usuario logueado)
+                    try
+                    {
+                        await _api.PostAccesoAsync(rut, _serial!, ipLocal, mac, pcName);
+                    }
+                    catch (Exception ex)
+                    {
+                        // No bloquea el login, solo loguea error local
+                        Console.WriteLine($"Error reportando acceso: {ex.Message}");
+                    }
+                    // ==============================
+
                     CursorGuard.Release(); KeyboardHook.Uninstall();
                     CambiarAModoLogoutUI(mac); DialogResult = DialogResult.OK;
                     return;
                 }
+
                 string msg = string.IsNullOrWhiteSpace(err) ? "PIN incorrecto o credenciales inválidas." : err;
                 MessageBox.Show(msg, "Error de autenticación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 await BeginVerificationAsync();

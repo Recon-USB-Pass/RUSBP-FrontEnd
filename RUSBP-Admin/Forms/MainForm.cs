@@ -5,12 +5,10 @@ namespace RUSBP_Admin.Forms
 {
     public partial class MainForm : Form
     {
-        /* ─────────── Campos ─────────── */
         private readonly MonitoringService _mon;
         private readonly ApiClient _api;
         private static NotifyIcon? _tray;
 
-        /* ─────────── Vistas ─────────── */
         private readonly MonitoringView _monitoringView = new();
         private readonly UsbCryptoService _usbService = new UsbCryptoService();
         private readonly UsbAssignmentView _assignmentView;
@@ -26,7 +24,6 @@ namespace RUSBP_Admin.Forms
 
             _assignmentView = new UsbAssignmentView(api, _usbService);
 
-            /* Tray-icon (restaurar) */
             if (_tray == null)
             {
                 _tray = new NotifyIcon
@@ -42,7 +39,7 @@ namespace RUSBP_Admin.Forms
                 };
             }
 
-            /* Inyectar servicios */
+            // Inyectar servicios
             _monitoringView.SetServices(_mon, _api);
             _monitoringView.EmployeeSelected += emp =>
             {
@@ -51,26 +48,26 @@ namespace RUSBP_Admin.Forms
             };
             _assignmentView.UsbPrepared += _ => ShowView(_monitoringView);
 
-            /* LogoutView → evento Confirmar */
             _logoutView.LogoutConfirmed += async (_, __) => await RealLogoutAsync();
 
-            /* Navegación */
+            // Navegación
             _navBar.SectionSelected += tag => ShowSection(tag);
-            ShowView(_monitoringView);     // inicio
+            ShowSection("Monitor");     // inicio, así también resalta la sección
         }
 
-        /* Navegación sin async */
         private void ShowSection(string tag)
         {
+            _navBar.SetActive(tag); // <-- Marca el icono activo
+
             switch (tag)
             {
                 case "Monitor": ShowView(_monitoringView); break;
                 case "Assign": ShowView(_assignmentView); break;
                 case "Logout": ShowView(_logoutView); break;
+                    // puedes agregar "Logs", "Profile" aquí si tienes esas vistas
             }
         }
 
-        /* Logout definitivo (salida / restart) */
         private async Task RealLogoutAsync()
         {
             try { await _api.SendAsync(HttpMethod.Post, "/auth/logout"); }
@@ -79,11 +76,10 @@ namespace RUSBP_Admin.Forms
             {
                 _tray!.Visible = false;
                 _tray.Dispose();
-                Application.Restart();          // vuelve al LoginForm
+                Application.Restart();
             }
         }
 
-        /* Helper de vistas */
         private void ShowView(UserControl view)
         {
             _panelContent.SuspendLayout();
@@ -110,6 +106,3 @@ namespace RUSBP_Admin.Forms
         }
     }
 }
-
-
-

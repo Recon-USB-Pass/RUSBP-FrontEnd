@@ -1,11 +1,13 @@
-﻿using System.Net;
+﻿using RUSBP_Admin.Core.Models;
+using RUSBP_Admin.Core.Models.Dtos;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using RUSBP_Admin.Core.Models;
-using RUSBP_Admin.Core.Models.Dtos;
 using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace RUSBP_Admin.Core.Services
 {
@@ -50,7 +52,7 @@ namespace RUSBP_Admin.Core.Services
                 _http = new HttpClient(handler)
                 {
                     BaseAddress = uriBuilder.Uri,
-                    Timeout = TimeSpan.FromSeconds(20)
+                    Timeout = TimeSpan.FromSeconds(30)
                 };
             }
             catch (UriFormatException ex)
@@ -259,5 +261,49 @@ namespace RUSBP_Admin.Core.Services
             }
             LogDebug($"[ApiClient] Conn ERROR {ex.Message}");
         }
+        // Envía acceso con ip/mac donde se logueó este USB
+        public async Task PostAccesoAsync(string rut, string serialUsb, string ip, string mac, string pcName)
+        {
+            var body = new
+            {
+                rut,
+                serialUsb,
+                ip,
+                mac,
+                pcName
+            };
+            await _http.PostAsJsonAsync(U("api/Accesos"), body);
+        }
+        // En ApiClient.cs
+        public async Task<(string ip, string mac, string pcName)> GetUltimoAccesoAsync(string serial)
+        {
+            try
+            {
+                var url = $"api/Accesos/ultimo?serial={serial}";
+                var resp = await _http.GetAsync(U(url));
+                var json = await resp.Content.ReadAsStringAsync();
+
+                if (!resp.IsSuccessStatusCode)
+                {
+                    MessageBox.Show($"Error {resp.StatusCode}: {json}", "ERROR API ACCESO");
+                    return ("", "", "");
+                }
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                return (
+                    root.GetProperty("ip").GetString() ?? "",
+                    root.GetProperty("mac").GetString() ?? "",
+                    root.GetProperty("pcName").GetString() ?? ""
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Exception API acceso: {ex}", "API ERROR");
+                return ("", "", "");
+            }
+        }
+
+
+
     }
 }

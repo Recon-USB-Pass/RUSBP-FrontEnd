@@ -60,8 +60,10 @@ namespace RUSBP_Admin.Forms.Shared
             _lblIp.Text = $"IP: {emp.Ip}";
             _lblMac.Text = $"MAC: {emp.Mac}";
             _lblPing.Text = pingTxt;
+            Console.WriteLine($"USBCARDCONTROL: {emp.Nombre} IP:{emp.Ip} MAC:{emp.Mac} Ping:{pingTxt}");
             Invalidate();
         }
+
 
         public void UpdatePing(string pingTxt, bool usbConnected)
         {
