@@ -7,16 +7,11 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
 namespace RUSBP_Admin.Core.Services
 {
-    
-
-    public record RecoverUsbResponse(bool Ok, string? Err,
-                                         string CipherB64, string TagB64);
-
-
+    // Para recuperar un USB (RP_x) desde el backend
+    public record RecoverUsbResponse(bool Ok, string? Err, string CipherB64, string TagB64);
 
     public class ApiClient
     {
@@ -25,28 +20,20 @@ namespace RUSBP_Admin.Core.Services
         public ApiClient(string backendIp)
         {
             backendIp = backendIp?.Trim() ?? "";
-
-            // Si viene sin http, lo agrega
             string url = backendIp.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                 ? backendIp
                 : $"https://{backendIp}";
-
             // Si NO hay puerto explícito, agrega :8443
             var uriBuilder = new UriBuilder(url);
-            if (uriBuilder.Port == 443 || uriBuilder.Port == 80) // default port => no puerto explícito
-            {
+            if (uriBuilder.Port == 443 || uriBuilder.Port == 80)
                 uriBuilder.Port = 8443;
-            }
-
             // Forzar slash final
             if (!uriBuilder.Path.EndsWith("/"))
                 uriBuilder.Path += "/";
-
             var handler = new HttpClientHandler
             {
-                ServerCertificateCustomValidationCallback = (_, __, ___, ____) => true // Solo para testing
+                ServerCertificateCustomValidationCallback = (_, __, ___, ____) => true // Para testing/dev
             };
-
             try
             {
                 _http = new HttpClient(handler)
@@ -122,13 +109,11 @@ namespace RUSBP_Admin.Core.Services
         {
             var body = new { serial, agentType };
             var resp = await _http.PostAsJsonAsync("api/usb/recover", body);
-
             if (!resp.IsSuccessStatusCode)
             {
                 string err = await resp.Content.ReadAsStringAsync();
                 return new RecoverUsbResponse(false, err, "", "");
             }
-
             var json = await resp.Content.ReadFromJsonAsync<JsonElement>();
             string cipherB64 = json!.GetProperty("cipher").GetString()!;
             string tagB64 = json.GetProperty("tag").GetString()!;
@@ -139,7 +124,7 @@ namespace RUSBP_Admin.Core.Services
 
         public async Task<string?> VerifyUsbAsync(string serial, string certPem, CancellationToken ct = default)
         {
-            var dto = new { serial, certPem }; // El backend espera estas propiedades exactas
+            var dto = new { serial, certPem };
             string payload = System.Text.Json.JsonSerializer.Serialize(dto);
             Console.WriteLine($"[DEBUG-API] verify-usb payload: {payload}");
 
@@ -153,7 +138,6 @@ namespace RUSBP_Admin.Core.Services
             Console.WriteLine($"[DEBUG-API] verify-usb response: {content}");
             return content;
         }
-
 
         public async Task<RecoverResponseDto?> RecoverAsync(RecoverDto dto, CancellationToken ct = default)
         {
@@ -188,7 +172,6 @@ namespace RUSBP_Admin.Core.Services
             string body = await resp.Content.ReadAsStringAsync();
             if (resp.IsSuccessStatusCode)
                 return (true, null);
-
             return (false, body.Length > 200 ? resp.StatusCode.ToString() : body);
         }
 
@@ -261,6 +244,7 @@ namespace RUSBP_Admin.Core.Services
             }
             LogDebug($"[ApiClient] Conn ERROR {ex.Message}");
         }
+
         // Envía acceso con ip/mac donde se logueó este USB
         public async Task PostAccesoAsync(string rut, string serialUsb, string ip, string mac, string pcName)
         {
@@ -274,7 +258,10 @@ namespace RUSBP_Admin.Core.Services
             };
             await _http.PostAsJsonAsync(U("api/Accesos"), body);
         }
-        // En ApiClient.cs
+
+        /// <summary>
+        /// Obtiene el último acceso para un USB (serial). Devuelve ip, mac y pcName.
+        /// </summary>
         public async Task<(string ip, string mac, string pcName)> GetUltimoAccesoAsync(string serial)
         {
             try
@@ -282,7 +269,6 @@ namespace RUSBP_Admin.Core.Services
                 var url = $"api/Accesos/ultimo?serial={serial}";
                 var resp = await _http.GetAsync(U(url));
                 var json = await resp.Content.ReadAsStringAsync();
-
                 if (!resp.IsSuccessStatusCode)
                 {
                     MessageBox.Show($"Error {resp.StatusCode}: {json}", "ERROR API ACCESO");
@@ -302,8 +288,5 @@ namespace RUSBP_Admin.Core.Services
                 return ("", "", "");
             }
         }
-
-
-
     }
 }

@@ -8,14 +8,50 @@ using System.Text;
 namespace RUSBP_Admin.Core.Helpers
 {
     /// <summary>
-    /// Ayuda para operaciones criptográficas: firma, cifrado y descifrado con PKI y archivos de configuración (.btlk, .btlk-ip).
+    /// Utilidades criptográficas: cifrado/descifrado AES-GCM, firma digital y carga de certificados.
+    /// Compatible con el flujo del bootstrap (TAG de 16 bytes al inicio, IV=0, sin sal ni PBKDF2).
     /// </summary>
     public static class CryptoHelper
     {
-        // --- DESCIFRADO .btlk y .btlk-ip (AES-GCM) ---
+        // --- CIFRADO AES-GCM PARA RP_x Y RP_ROOT (flujos bootstrap/admin) ---
 
         /// <summary>
-        /// Desencripta un archivo tipo .btlk o .btlk-ip (AES-GCM, nonce de 12 bytes en cero, tag de 16 bytes al inicio).
+        /// Cifra texto en AES-GCM (clave derivada SHA256, IV fijo 0), retorna (cipher, tag).
+        /// </summary>
+        public static (byte[] cipher, byte[] tag) EncryptAesGcm(string plainText, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12]; // IV todo cero
+            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
+            byte[] cipherBytes = new byte[plainBytes.Length];
+            byte[] tag = new byte[16];
+            aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
+            return (cipherBytes, tag);
+        }
+
+        /// <summary>
+        /// Descifra texto AES-GCM (misma convención del bootstrap)
+        /// </summary>
+        public static string DecryptAesGcm(byte[] cipher, byte[] tag, byte[] key)
+        {
+            using var aes = new AesGcm(key);
+            byte[] nonce = new byte[12];
+            byte[] plain = new byte[cipher.Length];
+            aes.Decrypt(nonce, cipher, tag, plain);
+            return Encoding.UTF8.GetString(plain);
+        }
+
+        /// <summary>
+        /// Deriva clave AES-256 a partir de una password (SHA256).
+        /// </summary>
+        public static byte[] DeriveKeyFromPass(string password)
+        {
+            using var sha256 = SHA256.Create();
+            return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        }
+
+        /// <summary>
+        /// Descifra .btlk o .btlk-ip (TAG de 16 bytes al inicio, IV=0).
         /// </summary>
         public static string DecryptBtlk(string filePath, string recoveryPass)
         {
@@ -39,69 +75,61 @@ namespace RUSBP_Admin.Core.Helpers
         }
 
         /// <summary>
-        /// Desencripta el archivo .btlk-ip para extraer la IP cifrada (igual que DecryptBtlk).
+        /// Descifra .btlk-ip (alias de DecryptBtlk)
         /// </summary>
         public static string DecryptBtlkIp(string filePath, string recoveryPass)
             => DecryptBtlk(filePath, recoveryPass);
 
         /// <summary>
-        /// Deriva una clave AES-256 de 32 bytes a partir de la password (SHA256).
+        /// Para compatibilidad: descifra buffer (TAG(16) || CIPHER(n)) en memoria.
         /// </summary>
-        public static byte[] DeriveKeyFromPass(string password)
+        public static string DecryptToString(byte[] tagCipher, string pass)
         {
-            using var sha256 = SHA256.Create();
-            return sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-        }
-
-        // --- CIFRADO AES-GCM para compatibilidad si lo necesitas en el futuro ---
-
-        /// <summary>
-        /// Cifra texto en AES-GCM con clave derivada. Devuelve (cipher, tag).
-        /// </summary>
-        public static (byte[] cipher, byte[] tag) EncryptAesGcm(string plainText, byte[] key)
-        {
-            using var aes = new AesGcm(key);
-            byte[] nonce = new byte[12]; // Fijo a cero para compatibilidad
-            byte[] plainBytes = Encoding.UTF8.GetBytes(plainText);
-            byte[] cipherBytes = new byte[plainBytes.Length];
-            byte[] tag = new byte[16];
-            aes.Encrypt(nonce, plainBytes, cipherBytes, tag);
-            return (cipherBytes, tag);
-        }
-
-        /// <summary>
-        /// Descifra bytes usando AES-GCM.
-        /// </summary>
-        public static string DecryptAesGcm(byte[] cipher, byte[] tag, byte[] key)
-        {
-            using var aes = new AesGcm(key);
-            byte[] nonce = new byte[12];
+            const int TAG_LEN = 16;
+            byte[] key = DeriveKeyFromPass(pass);
+            byte[] tag = tagCipher[..TAG_LEN];
+            byte[] cipher = tagCipher[TAG_LEN..];
             byte[] plain = new byte[cipher.Length];
-            aes.Decrypt(nonce, cipher, tag, plain);
+
+            using var gcm = new AesGcm(key);
+            gcm.Decrypt(new byte[12], cipher, tag, plain);
             return Encoding.UTF8.GetString(plain);
         }
 
+        // --- FIRMA DIGITAL Y VALIDACIÓN (PKI, flujo de bootstrap y login challenge) ---
 
-        // --- ÚTILES DE TEXTO ---
+        /// <summary>
+        /// Firma un bloque de datos con una clave privada PEM (challenge-response).
+        /// </summary>
+        public static string SignWithPemKey(string privateKeyPem, string challengeBase64)
+        {
+            byte[] challenge = Convert.FromBase64String(challengeBase64);
+            using RSA rsa = RSA.Create();
+            rsa.ImportFromPem(privateKeyPem);
 
-        public static string ToBase64(byte[] data) => Convert.ToBase64String(data);
-        public static byte[] FromBase64(string b64) => Convert.FromBase64String(b64);
+            byte[] sig = rsa.SignData(challenge, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            return Convert.ToBase64String(sig);
+        }
 
-        // --- FIRMA DIGITAL Y PKI (por si mantienes validación de certificados, no borres estas) ---
-
+        /// <summary>
+        /// Firma datos usando el certificado X509 (usado para testing/validación interna).
+        /// </summary>
         public static byte[] SignData(byte[] data, X509Certificate2 signerCert)
         {
             using var rsa = signerCert.GetRSAPrivateKey();
             return rsa.SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
 
+        /// <summary>
+        /// Verifica firma digital usando certificado X509.
+        /// </summary>
         public static bool VerifySignature(byte[] data, byte[] signature, X509Certificate2 cert)
         {
             using var rsa = cert.GetRSAPublicKey();
             return rsa.VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
         }
 
-        // --- CARGA DE CERTIFICADOS X.509 DESDE PEM O PFX ---
+        // --- UTILIDADES DE CERTIFICADOS (carga, conversión PEM/PFX) ---
 
         public static X509Certificate2 LoadCertificate(string path, string? password = null)
         {
@@ -119,7 +147,7 @@ namespace RUSBP_Admin.Core.Helpers
             return X509Certificate2.CreateFromPem(pem);
         }
 
-        // --- GESTIÓN DE BLOQUEO/ DESBLOQUEO DE UNIDADES CON BITLOCKER ---
+        // --- GESTIÓN DE BLOQUEO/DESBLOQUEO DE UNIDADES BITLOCKER ---
         public static bool LockDrive(string driveLetter)
         {
             try
@@ -165,55 +193,56 @@ namespace RUSBP_Admin.Core.Helpers
                 return false;
             }
         }
-        public static bool UnlockBitLockerWithRecoveryPass(string driveLetter, string recoveryPassword)
+
+        public static bool UnlockBitLockerWithRecoveryPass(string driveLetter, string recoveryPassword, out string outputMsg)
         {
+            outputMsg = "";
             try
             {
-                // Normalizar la letra (asegúrate que sea "G:")
                 string normalized = driveLetter.Trim().TrimEnd('\\').TrimEnd(':') + ":";
                 string args = $"-unlock {normalized} -RecoveryPassword {recoveryPassword}";
-                string cmd = $"manage-bde {args}";
-
-                Console.WriteLine("BITLOCKER CMD: " + cmd);
-                Debug.WriteLine("BITLOCKER CMD: " + cmd);
 
                 var psi = new ProcessStartInfo
                 {
-                    FileName = "manage-bde", // NO .exe
+                    FileName = "manage-bde.exe",
                     Arguments = args,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
                     CreateNoWindow = true,
-                    Verb = "runas" // Garantiza que pida permisos de admin si es necesario
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
                 };
+
                 using var p = Process.Start(psi);
+                string output = p.StandardOutput.ReadToEnd();
+                string error = p.StandardError.ReadToEnd();
                 p.WaitForExit();
 
-                Console.WriteLine("STDOUT: " + p.StandardOutput.ReadToEnd());
-                Console.WriteLine("STDERR: " + p.StandardError.ReadToEnd());
-                Debug.WriteLine("ExitCode: " + p.ExitCode);
+                outputMsg = output + error;
 
-                return p.ExitCode == 0;
+                if (p.ExitCode == 0 ||
+                    output.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
+                    error.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
+                    output.Contains("already unlocked", StringComparison.OrdinalIgnoreCase) ||
+                    error.Contains("already unlocked", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                return false;
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Excepción al ejecutar manage-bde: " + ex);
-                Debug.WriteLine("Excepción al ejecutar manage-bde: " + ex);
+                outputMsg = ex.Message;
                 return false;
             }
         }
-        public static string DecryptToString(byte[] tagCipher, string pass)
-        {
-            const int TAG_LEN = 16;
-            byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes(pass));
-            byte[] tag = tagCipher[..TAG_LEN];
-            byte[] cipher = tagCipher[TAG_LEN..];
-            byte[] plain = new byte[cipher.Length];
 
-            using var gcm = new AesGcm(key);
-            gcm.Decrypt(new byte[12], cipher, tag, plain);
-            return Encoding.UTF8.GetString(plain);
-        }
+
+
+
+        // --- UTILS DE TEXTO Y BASE64 ---
+        public static string ToBase64(byte[] data) => Convert.ToBase64String(data);
+        public static byte[] FromBase64(string b64) => Convert.FromBase64String(b64);
     }
 }

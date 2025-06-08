@@ -111,7 +111,7 @@ namespace RUSBP_Admin
                 }
 
                 /* 3️⃣ Desbloquear BitLocker */
-                if (!UsbCryptoService.UnlockBitLockerWithRecoveryPass(driveLetter, rpRoot))
+                if (!CryptoHelper.UnlockBitLockerWithRecoveryPass(driveLetter, rpRoot, out _))
                 {
                     MessageBox.Show("No se pudo desbloquear la unidad.",
                                     "BitLocker", MessageBoxButtons.OK, MessageBoxIcon.Error);

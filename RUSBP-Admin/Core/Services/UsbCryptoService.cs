@@ -15,6 +15,7 @@ using RUSBP_Admin.Forms;
 using System.Diagnostics;
 using System.Management;
 using System.Security.Cryptography;
+using RUSBP_Admin.Core.Helpers;
 
 namespace RUSBP_Admin.Core.Services
 {
@@ -31,7 +32,7 @@ namespace RUSBP_Admin.Core.Services
         /* ===============================================================
            1. Localiza el primer USB que contenga la carpeta /pki
         ===============================================================*/
-        public bool TryLocateUsb()
+        public bool TryLocateUsb(bool esModoRoot = false)
         {
             foreach (var info in EnumerateUsbInfos())
             {
@@ -39,27 +40,28 @@ namespace RUSBP_Admin.Core.Services
                 {
                     string pkiDir = Path.Combine(root, "pki");
 
-                    /* ───── 1. ¿La unidad aún está cifrada? ───── */
+                    // --- Si la unidad no está inicializada/cifrada ---
                     if (!Directory.Exists(pkiDir))
                     {
                         string driveLetter = root[..2]; // “F:”
 
-                        /* 1-a) Si YA tenemos la RP_root global => intentar unlock silencioso */
-                        if (!string.IsNullOrWhiteSpace(RpRootGlobal) &&
-                            UnlockBitLockerWithRecoveryPass(driveLetter, RpRootGlobal))
+                        if (!string.IsNullOrWhiteSpace(RpRootGlobal))
                         {
-                            // damos tiempo a Windows a montar el volumen
-                            Thread.Sleep(2500);
-                            if (!Directory.Exists(pkiDir)) continue;
+                            // Modo empleado: solo intenta unlock silencioso.
+                            if (CryptoHelper.UnlockBitLockerWithRecoveryPass(driveLetter, RpRootGlobal, out _))
+                            {
+                                Thread.Sleep(2500);
+                                if (!Directory.Exists(pkiDir)) continue;
+                            }
                         }
-                        /* 1-b) Solo si no hay RpRootGlobal -> pedirla al usuario */
-                        else
+                        else if (esModoRoot)
                         {
+                            // Modo root: puede pedir el recovery password
                             if (!Prompt.ForRecoveryPassword(out string rp))
-                                continue;                               // canceló
+                                continue; // canceló
 
-                            RpRootGlobal = rp;                         // cache global
-                            if (!UnlockBitLockerWithRecoveryPass(driveLetter, rp))
+                            RpRootGlobal = rp;
+                            if (!CryptoHelper.UnlockBitLockerWithRecoveryPass(driveLetter, rp, out _))
                             {
                                 MessageBox.Show("No se pudo desbloquear el USB.",
                                     "Error BitLocker", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -68,9 +70,14 @@ namespace RUSBP_Admin.Core.Services
                             Thread.Sleep(2500);
                             if (!Directory.Exists(pkiDir)) continue;
                         }
+                        else
+                        {
+                            // Modo empleado y no se puede desbloquear: NO poppear nada.
+                            continue;
+                        }
                     }
 
-                    /* ───── 2. Estructura OK: asignar campos y salir ───── */
+                    // Estructura OK
                     string sysDir = Path.Combine(root, "rusbp.sys");
                     bool hasRoot = File.Exists(Path.Combine(sysDir, ".btlk")) &&
                                    File.Exists(Path.Combine(sysDir, ".btlk-agente"));
@@ -85,6 +92,8 @@ namespace RUSBP_Admin.Core.Services
             IsRoot = false;
             return false;
         }
+
+
 
 
         /* ===============================================================
@@ -157,6 +166,44 @@ namespace RUSBP_Admin.Core.Services
             return list;
         }
 
+        /// <summary>
+        /// Busca entre TODOS los USB bloqueados y solo retorna el que,
+        /// tras desbloquear, realmente contiene la carpeta /pki y los archivos necesarios.
+        /// </summary>
+        public static (UsbInfo usb, string root)? FindFirstUsbWithPkiAfterUnlock(Func<string, string, Task<(bool ok, string? err)>> unlockFunc)
+        {
+            foreach (var usb in EnumerateUsbInfos())
+            {
+                foreach (var root in usb.Roots)
+                {
+                    string driveLetter = root[..2]; // Ej: F:
+                    string pkiDir = Path.Combine(root, "pki");
+                    string certPath = Path.Combine(pkiDir, "cert.crt");
+                    string keyPath = Path.Combine(pkiDir, "priv.key");
+
+                    // Solo si la unidad está bloqueada intentamos desbloquear
+                    if (BitLockerService.IsLocked(driveLetter))
+                    {
+                        var unlockResult = unlockFunc(driveLetter, usb.Serial).GetAwaiter().GetResult();
+                        if (!unlockResult.ok)
+                            continue; // Si no se pudo desbloquear, sigue al siguiente USB
+                    }
+
+                    // Verificar que existe la PKI (ya desbloqueada)
+                    if (Directory.Exists(pkiDir) &&
+                        File.Exists(certPath) &&
+                        File.Exists(keyPath))
+                    {
+                        return (usb, root);
+                    }
+                }
+            }
+            return null;
+        }
+
+
+
+
         private static void LogDebug(string msg)
         {
             try
@@ -181,47 +228,7 @@ namespace RUSBP_Admin.Core.Services
             byte[] sig = rsa.SignData(challenge, System.Security.Cryptography.HashAlgorithmName.SHA256, System.Security.Cryptography.RSASignaturePadding.Pkcs1);
             return Convert.ToBase64String(sig);
         }
-        public static bool UnlockBitLockerWithRecoveryPass(string driveLetter, string recoveryPass)
-        {
-            try
-            {
-                string normalized = driveLetter.Trim().TrimEnd('\\').TrimEnd(':') + ":";
-                string args = $"-unlock {normalized} -RecoveryPassword {recoveryPass}";
-
-                var proc = new Process();
-                proc.StartInfo.FileName = "manage-bde.exe";
-                proc.StartInfo.Arguments = args;
-                proc.StartInfo.CreateNoWindow = true;
-                proc.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.RedirectStandardError = true;
-
-                proc.Start();
-                string output = proc.StandardOutput.ReadToEnd();
-                string error = proc.StandardError.ReadToEnd();
-                proc.WaitForExit();
-
-                // Considera éxito si ya está desbloqueado (output o error)
-                if (proc.ExitCode == 0 ||
-                    output.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
-                    error.Contains("ya está desbloqueado", StringComparison.OrdinalIgnoreCase) ||
-                    output.Contains("already unlocked", StringComparison.OrdinalIgnoreCase) ||
-                    error.Contains("already unlocked", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-
-                // Solo muestra error real
-                MessageBox.Show($"Error al desbloquear BitLocker:\n{output}\n{error}", "BitLocker Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Excepción al desbloquear BitLocker:\n{ex}", "BitLocker Exception", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-        }
+       
         public static string? RpRootGlobal { get; set; }
 
     }
@@ -230,135 +237,5 @@ namespace RUSBP_Admin.Core.Services
 
 
 
-
-/*
-
-// UsbCryptoService.cs  –  v2  (usa pki/cert.crt + pki/priv.key)
-// -----------------------------------------------------------------------------
-// • Busca el primer USB que contenga pki/cert.crt  y  pki/priv.key
-// • Devuelve el certificado en PEM (LoadCertPem)
-// • Firma el challenge con la clave privada PKCS#8  (Sign)
-// -----------------------------------------------------------------------------
-// NOTA
-// - cert.crt y priv.key siguen estando en **formato PEM**; sólo cambia el
-//   nombre y la ubicación.  No es necesario convertir a DER.
-// - La verificación del certificado se sigue haciendo en el backend mediante
-//   el endpoint /api/auth/verify-usb  (LoginForm.BeginVerificationAsync).
-// -----------------------------------------------------------------------------
-
-using System.Management;
-using System.Security.Cryptography;
-
-namespace RUSBP_Admin.Core.Services
-{
-    public class UsbCryptoService
-    {
-        public string? MountedRoot { get; private set; }
-        public string? Serial { get; private set; }
-
-        private const string CERT_REL = @"pki\cert.crt";
-        private const string KEY_REL = @"pki\priv.key";
-
-        /* 1) Localiza el primer USB con la estructura /pki *//*
-        public bool TryLocateUsb()
-        {
-            var infos = EnumerateUsbInfos();
-
-            if (infos.Count == 0)
-            {
-                LogDebug("No se detectaron USB conectados");
-                return false;
-            }
-
-            foreach (var info in infos)
-            {
-                foreach (var root in info.Roots)
-                {
-                    string certPath = Path.Combine(root, CERT_REL);
-                    string keyPath = Path.Combine(root, KEY_REL);
-
-                    LogDebug($"Inspeccionando: {root}");
-                    if (File.Exists(certPath)) LogDebug(" → cert.crt encontrado");
-                    if (File.Exists(keyPath)) LogDebug(" → priv.key encontrado");
-
-                    if (File.Exists(certPath) && File.Exists(keyPath))
-                    {
-                        Serial = info.Serial.ToUpperInvariant();
-                        MountedRoot = root;
-
-                        LogDebug($"USB válido ► Serial={Serial}  Root={MountedRoot}");
-                        return true;
-                    }
-                }
-            }
-
-            MessageBox.Show($"USB conectado, pero no contiene la carpeta PKI ({CERT_REL}, {KEY_REL}).");
-            return false;
-        }
-
-        /* 2) Lee el certificado PEM para enviarlo al backend *//*
-        public string LoadCertPem()
-        {
-            string certPath = Path.Combine(MountedRoot!, CERT_REL);
-            return File.ReadAllText(certPath);
-        }
-
-        /* 3) Firma el reto con la clave privada *//*
-        public string Sign(string challengeB64)
-        {
-            byte[] challenge = Convert.FromBase64String(challengeB64);
-            string keyPem = File.ReadAllText(Path.Combine(MountedRoot!, KEY_REL));
-
-            using var rsa = RSA.Create();
-            rsa.ImportFromPem(keyPem);
-
-            byte[] sig = rsa.SignData(challenge, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-            return Convert.ToBase64String(sig);
-        }
-
-        // ---------------------------------------------------------------------
-        // Helpers
-        // ---------------------------------------------------------------------
-
-        private record UsbInfo(string Serial, List<string> Roots);
-
-        private static List<UsbInfo> EnumerateUsbInfos()
-        {
-            var list = new List<UsbInfo>();
-
-            var q = new ManagementObjectSearcher(
-                "SELECT DeviceID, SerialNumber FROM Win32_DiskDrive WHERE InterfaceType='USB'");
-
-            foreach (ManagementObject d in q.Get())
-            {
-                string serial = d["SerialNumber"]?.ToString()?.Trim() ?? "";
-                if (string.IsNullOrEmpty(serial)) continue;
-
-                var roots = new List<string>();
-                foreach (ManagementObject part in d.GetRelated("Win32_DiskPartition"))
-                    foreach (ManagementObject log in part.GetRelated("Win32_LogicalDisk"))
-                        roots.Add(log["DeviceID"] + "\\");
-
-                list.Add(new UsbInfo(serial, roots));
-            }
-            return list;
-        }
-
-        private static void LogDebug(string msg)
-        {
-            try
-            {
-                string dir = Path.Combine(Path.GetTempPath(), "RUSBP", "logs");
-                Directory.CreateDirectory(dir);
-                string ts = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                File.AppendAllText(Path.Combine(dir, "debug.txt"),
-                                   $"{ts} - {msg}{Environment.NewLine}");
-            }
-            catch { /* ignora errores de logging *//* }
-        }
-    }
-}
-
-*/
 
 

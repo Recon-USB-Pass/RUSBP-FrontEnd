@@ -1,4 +1,8 @@
-﻿namespace RUSBP_Admin.Forms.Vistas
+﻿using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace RUSBP_Admin.Forms.Vistas
 {
     partial class UsbAssignmentView
     {
@@ -14,29 +18,30 @@
         {
             components = new System.ComponentModel.Container();
 
-            // Panel Izquierdo: USB
+            // === Panel Izquierdo: USB ===
             panelLeft = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(12, 28, 54),
-                Padding = new Padding(24)
+                BackColor = ColorTranslator.FromHtml("#0C1C36"),
+                Padding = new Padding(24, 40, 24, 24),   // top = 40
+                MinimumSize = new Size(260, 0)             // ancho fijo
             };
 
             lblUsbSection = new Label
             {
                 Text = "Conexión USB",
                 Dock = DockStyle.Top,
-                Height = 36,
+                Height = 38,
                 Font = new Font("Segoe UI", 18, FontStyle.Bold),
                 ForeColor = Color.White,
                 TextAlign = ContentAlignment.MiddleCenter,
-                Padding = new Padding(0, 18, 0, 18)
+                Padding = new Padding(0, 14, 0, 18)
             };
 
             picUsb = new PictureBox
             {
                 Dock = DockStyle.Top,
-                Height = 160,
+                Height = 120,
                 Image = Properties.Resources.usb_on,
                 SizeMode = PictureBoxSizeMode.Zoom,
                 Margin = new Padding(0, 20, 0, 20)
@@ -53,12 +58,13 @@
                 ForeColor = Color.White,
                 Margin = new Padding(0, 16, 0, 12)
             };
+            btnDetect.FlatAppearance.BorderSize = 0;
             btnDetect.Click += btnDetect_Click;
 
             _lblUsbName = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 30,
+                Height = 28,
                 Font = new Font("Segoe UI", 13, FontStyle.Regular),
                 ForeColor = Color.White,
                 Text = "Nombre del Dispositivo",
@@ -69,27 +75,27 @@
             _lblUsbSize = new Label
             {
                 Dock = DockStyle.Top,
-                Height = 24,
-                Font = new Font("Segoe UI", 11, FontStyle.Regular),
+                Height = 20,
+                Font = new Font("Segoe UI", 10, FontStyle.Regular),
                 ForeColor = Color.Gainsboro,
                 Text = "-",
                 TextAlign = ContentAlignment.MiddleCenter,
                 Margin = new Padding(0, 0, 0, 10)
             };
 
+            // Orden inverso: lo último es lo más arriba
             panelLeft.Controls.Add(_lblUsbSize);
             panelLeft.Controls.Add(_lblUsbName);
             panelLeft.Controls.Add(btnDetect);
             panelLeft.Controls.Add(picUsb);
             panelLeft.Controls.Add(lblUsbSection);
 
-            // Panel Central: Configuración USB
+            // === Panel Central: Configuración USB ===
             _grpInfo = new GroupBox
             {
-                Text = "",
                 Dock = DockStyle.Fill,
-                Padding = new Padding(24),
-                BackColor = Color.FromArgb(18, 27, 38),
+                Padding = new Padding(18, 24, 18, 24),
+                BackColor = ColorTranslator.FromHtml("#121B26"),
                 ForeColor = Color.White
             };
 
@@ -98,7 +104,7 @@
                 Text = "Configuración del Dispositivo USB",
                 Font = new Font("Segoe UI", 20, FontStyle.Bold),
                 Dock = DockStyle.Top,
-                Height = 48,
+                Height = 44,
                 ForeColor = Color.White,
                 TextAlign = ContentAlignment.MiddleLeft
             };
@@ -108,9 +114,9 @@
                 Text = "Información del Empleado",
                 Font = new Font("Segoe UI", 13, FontStyle.Bold),
                 Dock = DockStyle.Top,
-                Height = 30,
+                Height = 26,
                 ForeColor = Color.White,
-                Margin = new Padding(0, 14, 0, 4)
+                Margin = new Padding(0, 12, 0, 4)
             };
 
             // Entradas de Usuario
@@ -127,11 +133,11 @@
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = Color.White,
                 AutoSize = true,
-                Margin = new Padding(0, 18, 0, 6)
+                Margin = new Padding(0, 14, 0, 6)
             };
             cmbRol = new ComboBox
             {
-                Width = 190,
+                Width = 150,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 Font = new Font("Segoe UI", 11)
             };
@@ -141,37 +147,39 @@
             btnGenPki = new Button
             {
                 Text = "Generar claves PKI",
-                Width = 170,
-                Height = 35,
+                Width = 150,
+                Height = 32,
                 BackColor = Color.FromArgb(32, 45, 58),
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Margin = new Padding(6, 0, 0, 0)
+                Margin = new Padding(8, 0, 0, 0)
             };
+            btnGenPki.FlatAppearance.BorderSize = 0;
             btnGenPki.Click += btnGenPki_Click;
 
             btnEncrypt = new Button
             {
                 Text = "Cifrar Unidad",
-                Width = 170,
-                Height = 35,
+                Width = 150,
+                Height = 32,
                 BackColor = Color.FromArgb(38, 97, 214),
                 Font = new Font("Segoe UI", 11, FontStyle.Bold),
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Margin = new Padding(6, 10, 0, 4)
+                Margin = new Padding(8, 10, 0, 4)
             };
+            btnEncrypt.FlatAppearance.BorderSize = 0;
             btnEncrypt.Click += btnEncrypt_Click;
 
             progressBar = new ProgressBar
             {
-                Width = 360,
-                Height = 22,
+                Width = 340,
+                Height = 20,
                 Minimum = 0,
                 Maximum = 100,
                 Value = 0,
-                Margin = new Padding(0, 4, 0, 12),
+                Margin = new Padding(0, 4, 0, 10),
                 Style = ProgressBarStyle.Continuous
             };
 
@@ -183,12 +191,13 @@
             {
                 Text = "Crear Ambiente del USB",
                 Dock = DockStyle.Bottom,
-                Height = 48,
+                Height = 44,
                 BackColor = Color.FromArgb(26, 255, 176),
                 Font = new Font("Segoe UI", 16, FontStyle.Bold),
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.Black
             };
+            btnCreate.FlatAppearance.BorderSize = 0;
             btnCreate.Click += btnCreate_Click;
 
             // TableLayout para ordenar los campos
@@ -196,12 +205,13 @@
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 15,
+                RowCount = 16,
                 AutoSize = true,
-                BackColor = Color.Transparent
+                BackColor = Color.Transparent,
+                Padding = new Padding(8)
             };
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 38));
-            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 62));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
+            tbl.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64));
 
             int row = 0;
             tbl.Controls.Add(lblMain, 0, row);
@@ -211,6 +221,7 @@
             tbl.SetColumnSpan(lblSub, 2);
 
             tbl.Controls.Add(btnEncrypt, 1, ++row);
+
             tbl.Controls.Add(progressBar, 0, ++row);
             tbl.SetColumnSpan(progressBar, 2);
 
@@ -242,7 +253,7 @@
             _grpInfo.Controls.Add(tbl);
             _grpInfo.Controls.Add(btnCreate);
 
-            // Panel Derecho: Logs
+            // === Panel Derecho: Logs ===
             grpLogs = new GroupBox
             {
                 Text = "Logs del Sistema",
@@ -263,7 +274,7 @@
             };
             grpLogs.Controls.Add(logsTextBox);
 
-            // Layout responsivo
+            // === Layout responsivo ===
             var rootTable = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -271,30 +282,30 @@
                 RowCount = 1,
                 BackColor = Color.Transparent
             };
-            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30)); // USB
-            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40)); // Central
-            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30)); // Logs
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28)); // USB
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44)); // Central
+            rootTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28)); // Logs
 
             rootTable.Controls.Add(panelLeft, 0, 0);
             rootTable.Controls.Add(_grpInfo, 1, 0);
             rootTable.Controls.Add(grpLogs, 2, 0);
 
             Controls.Add(rootTable);
-            Size = new Size(1152, 768);
+            Size = new Size(1120, 720);
 
             // deshabilitar formulario hasta detectar USB
             ToggleForm(false);
         }
 
-        // Helpers para UI (igual que en tu código principal)
+        // Helpers para UI
         private TextBox MakeInput(string placeholder, bool isPassword = false)
         {
             var tb = new TextBox
             {
-                Width = 320,
+                Width = 260,
                 Font = new Font("Segoe UI", 12),
                 PlaceholderText = placeholder,
-                Margin = new Padding(0, 6, 0, 6)
+                Margin = new Padding(0, 5, 0, 5)
             };
             if (isPassword) tb.PasswordChar = '●';
             return tb;
@@ -307,7 +318,7 @@
                 Text = text,
                 Font = new Font("Segoe UI", 11),
                 ForeColor = Color.White,
-                Margin = new Padding(0, 6, 0, 6),
+                Margin = new Padding(0, 4, 0, 4),
                 AutoSize = true,
                 Checked = false,
                 Enabled = false

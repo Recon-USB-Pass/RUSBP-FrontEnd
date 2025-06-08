@@ -5,39 +5,59 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace RUSBP_Admin.Core.Services
 {
+    /// <summary>
+    /// Genera un par de claves RSA-2048 y un certificado X.509 autofirmado
+    /// (5 años) en formato PEM: <c>cert.crt</c> y <c>priv.key</c>.
+    /// </summary>
     public static class PkiService
     {
-        /// <summary>
-        /// Genera par de claves RSA y un certificado autofirmado.
-        /// Guarda cert.crt (X.509) y priv.key (clave PKCS#8) en el directorio destino.
-        /// </summary>
-        /// <param name="serial">Serial USB para CN</param>
-        /// <param name="destDir">Directorio donde guardar los archivos</param>
-        /// <returns>Ruta del certificado y de la clave</returns>
-        public static (string certPath, string privPath) GeneratePkcs8KeyPair(string serial, string destDir)
+        /// <param name="commonName">Valor que irá en el CN (usamos el serial del USB).</param>
+        /// <param name="destDir">Carpeta donde se escribirán los archivos.</param>
+        /// <returns>(rutaCert, rutaPrivKey)</returns>
+        public static (string certPath, string keyPath) GeneratePkcs8KeyPair(
+            string commonName, string destDir)
         {
             Directory.CreateDirectory(destDir);
 
-            string certPath = Path.Combine(destDir, "cert.crt");
-            string privPath = Path.Combine(destDir, "priv.key");
-
+            // ─ 1. Genera la clave y la CSR ─
             using var rsa = RSA.Create(2048);
             var req = new CertificateRequest(
-                new X500DistinguishedName($"CN={serial}"),
+                new X500DistinguishedName($"CN={commonName}"),
                 rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-            using var cert = req.CreateSelfSigned(DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddYears(5));
+            // ─ 2. Certificado autofirmado 5 años ─
+            using var cert = req.CreateSelfSigned(
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddYears(5));
 
-            // --- GUARDA EL CERTIFICADO EN FORMATO PEM ---
-            File.WriteAllText(certPath, new string(PemEncoding.Write("CERTIFICATE", cert.RawData)));
+            // ─ 3. Guarda PEM (idéntico a bootstrap) ─
+            string certPath = Path.Combine(destDir, "cert.crt");
+            string keyPath = Path.Combine(destDir, "priv.key");
 
-            // --- GUARDA LA CLAVE PRIVADA EN FORMATO PEM PKCS#8 ---
-            File.WriteAllText(privPath, new string(PemEncoding.Write("PRIVATE KEY", rsa.ExportPkcs8PrivateKey())));
+            File.WriteAllText(certPath,new string(PemEncoding.Write("CERTIFICATE", cert.RawData)));
+            File.WriteAllText(keyPath,new string(PemEncoding.Write("PRIVATE KEY",rsa.ExportPkcs8PrivateKey())));
 
-            return (certPath, privPath);
+            return (certPath, keyPath);
         }
 
+        /// <summary>Devuelve el thumbprint (SHA-1) de un PEM.</summary>
+        public static string GetThumbprintFromPem(string pemPath)
+        {
+            // Lee todo el fichero PEM
+            var pem = File.ReadAllText(pemPath);
 
+            // Elimina las cabeceras -----BEGIN/END----- y líneas vacías
+            var b64 = string.Concat(
+                         pem.Split(new[] { '\r', '\n' },
+                                   StringSplitOptions.RemoveEmptyEntries)
+                            .Where(l => !l.StartsWith("-----")));
+
+            // Decodifica Base-64 → DER y crea el X509
+            var raw = Convert.FromBase64String(b64);
+            using var cert = new X509Certificate2(raw);
+
+            return cert.Thumbprint!.ToUpperInvariant();
+        }
 
     }
 }

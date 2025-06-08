@@ -1,42 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net;
 using System.Net.NetworkInformation;
-using System.Net;
+using System.Net.Sockets;
 
-namespace RUSBP_Admin.Core.Services
+namespace RUSBP_Admin.Core.Helpers
 {
+    /// <summary>
+    /// Utilidad para obtener la IP local IPv4 de la máquina, excluyendo loopback y direcciones no asignadas.
+    /// </summary>
     public static class GetIpAddress
     {
+        /// <summary>
+        /// Devuelve la primera IP local IPv4 encontrada que no sea loopback.
+        /// Si no encuentra ninguna, retorna string vacío.
+        /// </summary>
         public static string GetLocalIpAddress()
         {
-            string localIP = string.Empty;
-
-            // Obtener todas las interfaces de red disponibles en la máquina.
             foreach (NetworkInterface netInterface in NetworkInterface.GetAllNetworkInterfaces())
             {
-                // Verificar si la interfaz de red está habilitada
-                if (netInterface.OperationalStatus == OperationalStatus.Up)
+                if (netInterface.OperationalStatus != OperationalStatus.Up)
+                    continue;
+
+                foreach (UnicastIPAddressInformation addr in netInterface.GetIPProperties().UnicastAddresses)
                 {
-                    // Obtener las direcciones IP asociadas con la interfaz
-                    foreach (UnicastIPAddressInformation addr in netInterface.GetIPProperties().UnicastAddresses)
+                    if (addr.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(addr.Address))
                     {
-                        // Ignorar las direcciones IP de tipo loopback (127.0.0.1)
-                        if (addr.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && !IPAddress.IsLoopback(addr.Address))
-                        {
-                            localIP = addr.Address.ToString();
-                            break;
-                        }
+                        return addr.Address.ToString();
                     }
                 }
-
-                if (!string.IsNullOrEmpty(localIP))
-                    break;
             }
-
-            return localIP;
+            return string.Empty;
         }
     }
 }

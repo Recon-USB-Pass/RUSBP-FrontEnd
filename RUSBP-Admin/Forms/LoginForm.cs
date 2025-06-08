@@ -50,7 +50,15 @@ namespace RUSBP_Admin
             CursorGuard.RestrictToControl(this, new Padding(80));
 
             _watcher = new UsbWatcher();
-            _watcher.StateChanged += st => Invoke(() => OnUsbStatusChanged(st));
+            _watcher.StateChanged += st =>
+            {
+                // 'this' debe ser el Form/UserControl
+                if (IsHandleCreated)
+                    BeginInvoke(() => OnUsbStatusChanged(st));
+                else
+                    OnUsbStatusChanged(st); // Ejecuta directo si no hay handle (rara vez, pero seguro)
+            };
+
         }
 
         /* ========== UI ========= */
@@ -190,60 +198,46 @@ namespace RUSBP_Admin
         /* ========== Verificación + Recover + Unlock ========= */
         private async Task BeginVerificationAsync()
         {
-            /* 1️⃣  Esperar a que al menos un USB aparezca (montado o bloqueado) */
-            while (UsbCryptoService.EnumerateUsbInfos().Count == 0)
-                await Task.Delay(800);
-
-            /* 2️⃣  Tomar el PRIMER dispositivo USB visto (puedes refinar si usas varios) */
-            var info = UsbCryptoService.EnumerateUsbInfos().First();
-            _serial = info.Serial.ToUpperInvariant();
-            string root = info.Roots.First();      // p. ej. “F:\”
-            string rootVol = root[..2];               // “F:”
-
-            /* 3️⃣  Si el volumen está BLOQUEADO → recover + unlock con BitLocker */
-            if (BitLockerService.IsLocked(rootVol))
+            // 1️⃣ Buscar entre TODOS los USB conectados aquel que tras desbloquear tenga PKI válida
+            var usbOk = UsbCryptoService.FindFirstUsbWithPkiAfterUnlock(async (driveLetter, serial) =>
             {
-                // 3.a ── pedir al backend cipher+tag usando /api/usb/recover
-                var resp = await _api.RecoverUsbAsync(_serial, 2 /*AgentType = Employee*/);
+                // Recupera el RecoveryPassword para ese serial desde el backend (bloquea el hilo solo aquí)
+                var resp = await _api.RecoverUsbAsync(serial, 2 /*AgentType = Employee*/);
+                if (!resp.Ok) return (false, "No se pudo obtener RP del backend");
 
-                if (!resp.Ok)
-                {
-                    MessageBox.Show(resp.Err ?? "Error en recover-usb", "Backend",
-                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                // 3.b ── descifrar RecoveryPassword   TAG(16) || CIPHER(n)
                 byte[] tagCipher = Convert.FromBase64String(resp.TagB64)
-                                 .Concat(Convert.FromBase64String(resp.CipherB64)).ToArray();
+                    .Concat(Convert.FromBase64String(resp.CipherB64)).ToArray();
+                string recPass = CryptoHelper.DecryptToString(tagCipher, UsbCryptoService.RpRootGlobal!);
 
-                string recPass = CryptoHelper.DecryptToString(
-                                     tagCipher,
-                                     UsbCryptoService.RpRootGlobal!); // RP_root almacenada
-
-                // 3.c ── desbloquear la unidad con manage-bde (silencioso)
-                if (!UsbCryptoService.UnlockBitLockerWithRecoveryPass(rootVol, recPass))
+                string unlockOutput;
+                bool ok = CryptoHelper.UnlockBitLockerWithRecoveryPass(driveLetter, recPass, out unlockOutput);
+                if (!ok && !(unlockOutput.Contains("ya est", StringComparison.OrdinalIgnoreCase) && unlockOutput.Contains("desbloqueado", StringComparison.OrdinalIgnoreCase)) &&
+                          !unlockOutput.Contains("already unlocked", StringComparison.OrdinalIgnoreCase))
                 {
-                    MessageBox.Show("No se pudo desbloquear la unidad BitLocker.",
-                                    "BitLocker", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
+                    return (false, unlockOutput);
                 }
+                // Ok o ya desbloqueado
+                await Task.Delay(1800); // Da tiempo a montar
+                return (true, null);
+            });
 
-                // pequeña espera hasta que Windows monte el volumen
-                await Task.Delay(2500);
-            }
-
-            /* 4️⃣  Ya desbloqueada → localizar estructura /pki y leer el certificado */
-            if (!_usb.TryLocateUsb())
+            if (usbOk == null)
             {
-                MessageBox.Show("Estructura /pki no encontrada tras el unlock.",
-                                "USB inválido", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("No se encontró ningún USB válido con BitLocker y PKI.\nSolo se aceptan dispositivos cifrados y con credenciales.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            string certPem = File.ReadAllText(Path.Combine(_usb.MountedRoot!, "pki", "cert.crt"));
+            var (usb, root) = usbOk.Value;
+            _serial = usb.Serial.ToUpperInvariant();
+            _usb.MountedRoot = root; // FIJA aquí la unidad montada correcta (la cifrada con PKI)
+            string pkiDir = Path.Combine(root, "pki");
+            string certPath = Path.Combine(pkiDir, "cert.crt");
+            string keyPath = Path.Combine(pkiDir, "priv.key");
 
-            /* 5️⃣  verify-usb → obtengo challenge */
+            // 2️⃣ Leer el certificado para challenge
+            string certPem = File.ReadAllText(certPath);
+
+            // 3️⃣ verify-usb → obtengo challenge
             _challenge = await _api.VerifyUsbAsync(_serial, certPem);
             if (_challenge is null)
             {
@@ -253,7 +247,7 @@ namespace RUSBP_Admin
                 return;
             }
 
-            /* 6️⃣  Todo OK → habilitar PIN */
+            // 4️⃣ Todo OK → habilitar PIN
             _watcher.SetVerified(true);
             _lblStatus.Text = "Unidad lista – ingrese PIN";
             _lblStatus.ForeColor = Color.LimeGreen;
@@ -261,6 +255,7 @@ namespace RUSBP_Admin
             _btnLogin.Enabled = true;
             _txtPin.Focus();
         }
+
 
 
 
@@ -290,7 +285,20 @@ namespace RUSBP_Admin
             _btnLogin.Enabled = false;
             try
             {
-                string keyPath = Path.Combine(_usb.MountedRoot!, "pki", "priv.key");
+                // No relocalizar: simplemente verifica que la unidad válida siga montada
+                if (_usb.MountedRoot is null || !Directory.Exists(_usb.MountedRoot))
+                {
+                    MessageBox.Show("Error: La unidad USB autenticada no está montada o fue removida. Vuelva a conectar el dispositivo.", "Error de dispositivo", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                string keyPath = Path.Combine(_usb.MountedRoot, "pki", "priv.key");
+                if (!File.Exists(keyPath))
+                {
+                    MessageBox.Show($"No se encontró la clave privada en:\n{keyPath}", "Error de clave privada", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
                 string privPem = File.ReadAllText(keyPath);
                 string sig = UsbCryptoService.SignWithKey(privPem, _challenge);
 
@@ -301,34 +309,42 @@ namespace RUSBP_Admin
                 var (ok, err) = await _api.LoginAsync(_serial, sig, _txtPin.Text.Trim(), mac);
                 if (ok)
                 {
-                    // === Nuevo: Reporta acceso ===
+                    // Reporta acceso (no bloquea el login en caso de error)
                     string ipLocal = ObtenerIpLocal();
                     string pcName = Environment.MachineName;
-                    string rut = _userRut ?? "root";  // Usa el rut real, ajústalo si tu flujo ya lo tiene (puedes recuperarlo del usuario logueado)
+                    string rut = _userRut ?? "root";
                     try
                     {
-                        await _api.PostAccesoAsync(rut, _serial!, ipLocal, mac, pcName);
+                        await _api.PostAccesoAsync(rut, _serial, ipLocal, mac, pcName);
                     }
                     catch (Exception ex)
                     {
-                        // No bloquea el login, solo loguea error local
                         Console.WriteLine($"Error reportando acceso: {ex.Message}");
                     }
-                    // ==============================
-
-                    CursorGuard.Release(); KeyboardHook.Uninstall();
-                    CambiarAModoLogoutUI(mac); DialogResult = DialogResult.OK;
+                    CursorGuard.Release();
+                    KeyboardHook.Uninstall();
+                    CambiarAModoLogoutUI(mac);
+                    DialogResult = DialogResult.OK;
                     return;
                 }
 
                 string msg = string.IsNullOrWhiteSpace(err) ? "PIN incorrecto o credenciales inválidas." : err;
                 MessageBox.Show(msg, "Error de autenticación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 await BeginVerificationAsync();
-
             }
-            catch (Exception ex) { MessageBox.Show(ex.Message); }
-            finally { _btnLogin.Enabled = true; _txtPin.SelectAll(); _txtPin.Focus(); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            finally
+            {
+                _btnLogin.Enabled = true;
+                _txtPin.SelectAll();
+                _txtPin.Focus();
+            }
         }
+
+
 
         /* ========== Logout UI ========= */
         private void CambiarAModoLogoutUI(string mac)
