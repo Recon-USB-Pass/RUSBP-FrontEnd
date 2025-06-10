@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace rusbp_bootstrap.Core
@@ -10,31 +11,68 @@ namespace rusbp_bootstrap.Core
         // Cifrar la unidad
         public static bool EncryptDrive(string driveLetter, string password)
         {
-            var psi = new ProcessStartInfo
+            try
             {
-                FileName = "powershell.exe",
-                Arguments = $"-Command \"Enable-BitLocker -MountPoint '{driveLetter}' -Password (ConvertTo-SecureString '{password}' -AsPlainText -Force) -PasswordProtector -EncryptionMethod XtsAes128\"",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-            var process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
+                // Paso 1: habilita BitLocker con contraseña
+                var psi1 = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-Command \"Enable-BitLocker -MountPoint '{driveLetter}' -EncryptionMethod XtsAes128 -UsedSpaceOnly -Password (ConvertTo-SecureString '{password}' -AsPlainText -Force) -PasswordProtector\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
 
-            Console.WriteLine("=== BitLocker STDOUT ===");
-            Console.WriteLine(output);
-            if (!string.IsNullOrWhiteSpace(error))
-            {
-                Console.WriteLine("=== BitLocker STDERR ===");
-                Console.WriteLine(error);
+                var p1 = Process.Start(psi1)!;
+                p1.WaitForExit();
+                if (p1.ExitCode != 0) return false;
+
+                // Paso 2: agrega el Recovery Password y captura la salida
+                var psi2 = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-Command \"Add-BitLockerKeyProtector -MountPoint '{driveLetter}' -RecoveryPasswordProtector | Out-String\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                var p2 = Process.Start(psi2)!;
+                string output = p2.StandardOutput.ReadToEnd();
+                p2.WaitForExit();
+                if (p2.ExitCode != 0) return false;
+
+                // Extrae y guarda el RecoveryPassword generado (48 dígitos con guiones)
+                var match = Regex.Match(output, @"\b\d{6}(?:-\d{6}){7}\b");
+                if (match.Success)
+                {
+                    var rp = match.Value;
+
+                    // Mostrar en consola al usuario
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"\n✔️  Recovery Password asignado: {rp}");
+                    Console.ResetColor();
+
+                    // Guardar cifrado como .btlk-rp
+                    var path = Path.Combine($"{driveLetter}:\\rusbp.sys", ".btlk-rp");
+                    Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                    File.WriteAllBytes(path, CryptoHelper.EncryptString(rp, rp));
+
+                    // Guardar en memoria para mostrarlo luego con opción 7
+                    Program.SetUltimoRpGenerado(rp);
+                }
+
+                return true;
             }
-            Console.WriteLine("========================");
-
-            return process.ExitCode == 0;
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error en EncryptDrive: " + ex.Message);
+                return false;
+            }
         }
+
 
         // Progreso de cifrado (polling)
         public static void ShowBitLockerProgress(string driveLetter)

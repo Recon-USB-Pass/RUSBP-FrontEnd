@@ -32,7 +32,10 @@ namespace rusbp_bootstrap.Api
                 rol = (int)rol        // 0 = Root, 1 = Admin, 2 = Employee
             };
             var rsp = await _http.PostAsJsonAsync("/api/usb/register", body);
+            string msg = await rsp.Content.ReadAsStringAsync();
+            Console.WriteLine($"[DEBUG backend]: {msg}");
             return rsp.IsSuccessStatusCode;
+
         }
 
         /// <summary> POST /api/usb/asignar  (serial ←→ rut) </summary>
